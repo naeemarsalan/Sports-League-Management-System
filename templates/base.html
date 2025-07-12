@@ -10,7 +10,9 @@
     {% if session.get('user_id') %}
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
       <a href="{{ url_for('matches') }}">Matches</a>
-      <a href="{{ url_for('new_match') }}">Schedule Match</a>
+{     % if session['role'] == 'admin' %}
+        <a href="{{ url_for('new_match') }}">Schedule Match</a>
+      {% endif %}
       <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
