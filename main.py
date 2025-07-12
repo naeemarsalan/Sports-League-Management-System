@@ -163,13 +163,38 @@ def enter_score(match_id):
         return redirect(url_for('matches'))
 
     if request.method == 'POST':
-        score1 = request.form['score1']
-        score2 = request.form['score2']
-        cur.execute("UPDATE matches SET score_player1 = %s, score_player2 = %s, is_completed = TRUE WHERE id = %s",
-                    (score1, score2, match_id))
+    try:
+        score1 = int(request.form['score1'])
+        score2 = int(request.form['score2'])
+
+        # Range check
+        if not (-4 <= score1 <= 8) or not (-4 <= score2 <= 8):
+            flash("Scores must be between -4 and 8.", "danger")
+            return redirect(url_for('enter_score', match_id=match_id))
+
+        # Outcome check
+        if not (
+            (score1 == 8 and score2 < 8) or
+            (score2 == 8 and score1 < 8) or
+            (score1 == 7 and score2 == 7)
+        ):
+            flash("Invalid result: One player must reach 8, or it must be 7–7 for a draw.", "danger")
+            return redirect(url_for('enter_score', match_id=match_id))
+
+        cur.execute("""
+            UPDATE matches 
+            SET score_player1 = %s, score_player2 = %s, is_completed = TRUE 
+            WHERE id = %s
+        """, (score1, score2, match_id))
         conn.commit()
         flash("Score submitted!", "success")
-        return redirect(url_for('matches'))
+    except ValueError:
+        flash("Scores must be integers.", "danger")
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('matches'))
+
 
     cur.close()
     conn.close()
