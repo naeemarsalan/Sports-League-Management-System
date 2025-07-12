@@ -60,3 +60,26 @@ def manage_players():
     users = cur.fetchall()
     cur.close()
     return render_template('manage_players.html', players=players, users=users)
+
+@app.route('/admin/matches/<int:match_id>/reset', methods=['POST'])
+@admin_required
+def reset_match(match_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            UPDATE matches
+            SET score_player1 = NULL,
+                score_player2 = NULL,
+                is_completed = FALSE
+            WHERE id = %s
+        """, (match_id,))
+        conn.commit()
+        flash("Match has been reset.", "success")
+    except Exception as e:
+        conn.rollback()
+        flash("Error resetting match: " + str(e), "danger")
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('matches'))

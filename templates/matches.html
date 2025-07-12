@@ -1,22 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Matches{% endblock %}
+
 {% block content %}
   <h1>All Matches</h1>
   <table>
-    <tr><th>Player 1</th><th>Player 2</th><th>Time</th><th>Score</th></tr>
-    {% for match in matches %}
-    <tr>
-      <td>{{ match[1] }}</td>
-      <td>{{ match[2] }}</td>
-      <td>{{ match[3] }}</td>
-      <td>
-        {% if match[4] is not none %}
-          {{ match[4] }} - {{ match[5] }}
-        {% else %}
-          Not played
+    <thead>
+      <tr>
+        <th>Player 1</th>
+        <th>Player 2</th>
+        <th>Scheduled At</th>
+        <th>Score</th>
+        <th>Status</th>
+        {% if session['role'] == 'admin' %}
+        <th>Actions</th>
         {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for match in matches %}
+        <tr>
+          <td>{{ match[1] }}</td>  {# Player 1 name #}
+          <td>{{ match[2] }}</td>  {# Player 2 name #}
+          <td>{{ match[3] }}</td>  {# Scheduled at #}
+          <td>
+            {% if match[4] is not none and match[5] is not none %}
+              {{ match[4] }} - {{ match[5] }}
+            {% else %}
+              TBD
+            {% endif %}
+          </td>
+          <td>
+            {% if match[4] is not none and match[5] is not none %}
+              Completed
+            {% else %}
+              Upcoming
+            {% endif %}
+          </td>
+          {% if session['role'] == 'admin' %}
+          <td>
+            {% if match[4] is not none and match[5] is not none %}
+              <form method="POST" action="{{ url_for('reset_match', match_id=match[0]) }}" style="display:inline;">
+                <button type="submit" onclick="return confirm('Reset this match?')">Reset Match</button>
+              </form>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
   </table>
 {% endblock %}
