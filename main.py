@@ -182,20 +182,49 @@ def leaderboard():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT p.name,
-               SUM(CASE WHEN (p.id = m.player1_id AND m.score_player1 > m.score_player2) OR 
-                            (p.id = m.player2_id AND m.score_player2 > m.score_player1) THEN 1 ELSE 0 END) AS wins,
-               COUNT(m.id) AS games_played
+        SELECT 
+            p.name,
+            COUNT(m.id) AS games_played,
+            SUM(
+                CASE 
+                    WHEN (p.id = m.player1_id AND m.score_player1 > m.score_player2) OR 
+                         (p.id = m.player2_id AND m.score_player2 > m.score_player1)
+                    THEN 3
+                    WHEN m.score_player1 = m.score_player2 THEN 1
+                    ELSE 0
+                END
+            ) AS points,
+            SUM(
+                CASE 
+                    WHEN (p.id = m.player1_id AND m.score_player1 > m.score_player2) OR 
+                         (p.id = m.player2_id AND m.score_player2 > m.score_player1)
+                    THEN 1 ELSE 0
+                END
+            ) AS wins,
+            SUM(
+                CASE 
+                    WHEN m.score_player1 = m.score_player2 THEN 1 ELSE 0
+                END
+            ) AS draws,
+            SUM(
+                CASE 
+                    WHEN (p.id = m.player1_id AND m.score_player1 < m.score_player2) OR 
+                         (p.id = m.player2_id AND m.score_player2 < m.score_player1)
+                    THEN 1 ELSE 0
+                END
+            ) AS losses
         FROM players p
         LEFT JOIN matches m ON p.id IN (m.player1_id, m.player2_id)
         WHERE m.is_completed = TRUE
         GROUP BY p.id
-        ORDER BY wins DESC
+        ORDER BY points DESC
     """)
     leaderboard = cur.fetchall()
     cur.close()
     conn.close()
     return render_template('leaderboard.html', leaderboard=leaderboard)
+
+
 
 
 @app.route('/profile/create', methods=['GET', 'POST'])
