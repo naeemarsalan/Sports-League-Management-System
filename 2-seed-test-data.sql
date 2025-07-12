@@ -13,7 +13,7 @@ ON CONFLICT (username) DO NOTHING;
 INSERT INTO users (username, password, role) VALUES
   ('alice', 'alice123', 'player'),
   ('bob', 'bob123', 'player'),
-  ('carol', 'carol123', 'player');
+  ('carol', 'carol123', 'player')
 ON CONFLICT (username) DO NOTHING;
 
 -- ✅ Seed players, resolving user_id from usernames
