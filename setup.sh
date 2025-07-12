@@ -14,6 +14,9 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Build and start the containers
-echo "Building and starting containers..."
-docker-compose up --build 
+# Ensure init script is executable
+chmod +x 1-init-admin.sh
+
+# Build and start the containers in detached mode
+echo "Building and starting containers in detached mode..."
+docker compose up --build -d
