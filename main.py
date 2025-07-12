@@ -1,254 +1,227 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
-from db import get_db, close_db
-from admin_routes import admin_bp
-from user_routes import user_bp
-from config import Config
-import bcrypt
+from flask import Flask, render_template, request, redirect, session, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import psycopg2
+import os
 
-app = Flask(__name__) 
-app.secret_key = Config.SECRET_KEY
+app = Flask(__name__)
+app.secret_key = "super-secret"
 
-app.register_blueprint(admin_bp)
-app.register_blueprint(user_bp)
+def get_db():
+    return psycopg2.connect(
+        dbname=os.getenv("POSTGRES_DB", "sports_league"),
+        user=os.getenv("POSTGRES_USER", "sports_league_owner"),
+        password=os.getenv("POSTGRES_PASSWORD", "sports_league_password"),
+        host="db"
+    )
 
-@app.teardown_appcontext
-def teardown_db(exception):
-    close_db()
-
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template('500.html'), 500
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("You must be logged in.", "error")
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return wrapper
 
 @app.route('/')
-def landing():
-    if 'user_id' in session:
-        session.clear()
-    return render_template('landing.html')
-
-@app.route('/home')
 def home():
-    if 'user_id' in session:
-        if session.get('is_admin'):
-            return redirect(url_for('admin'))
-        else:
-            return redirect(url_for('user'))
-    else:
-        return redirect(url_for('login'))
+    return redirect('/dashboard')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
+        role = request.form.get('role', 'player')
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
+            (username, password, role)
+        )
+        db.commit()
+        cur.close()
+
+        flash("Registration successful. Please login.", "success")
+        return redirect('/login')
+
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         db = get_db()
         cur = db.cursor()
-        username = request.form['username']
-        password = request.form['password']
-        cur.execute(
-            'SELECT user_id, username, password, is_admin FROM users WHERE username = %s',
-            (username, ))
+        cur.execute("SELECT id, password_hash, role FROM users WHERE username = %s", (request.form['username'],))
         user = cur.fetchone()
         cur.close()
-        if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+
+        if user and check_password_hash(user[1], request.form['password']):
             session['user_id'] = user[0]
-            session['username'] = user[1]
-            session['is_admin'] = user[3]
-            return redirect(url_for('home'))
-        else:
-            flash('Invalid username or password', 'error')
-            return redirect(url_for('login'))
+            session['role'] = user[2]
+            return redirect('/dashboard')
+
+        flash("Invalid login credentials", "error")
+        return redirect('/login')
 
     return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        try:
-            db = get_db()
-            cur = db.cursor()
-            username = request.form['username']
-            password = request.form['password']
-            email = request.form['email']
-
-            # Check if the username already exists
-            cur.execute('SELECT * FROM users WHERE username = %s',
-                        (username, ))
-            existing_user = cur.fetchone()
-            if existing_user:
-                flash('Username already taken', 'error')
-                return redirect(url_for('register'))
-
-            # Check if the email already exists
-            cur.execute('SELECT * FROM users WHERE email = %s', (email, ))
-            existing_email = cur.fetchone()
-            if existing_email:
-                flash('Email already registered', 'error')
-                return redirect(url_for('register'))
-
-            # Hash the password
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-            cur.execute(
-                'INSERT INTO users (username, password, email, is_admin) VALUES (%s, %s, %s, %s)',
-                (username, hashed_password, email, False))
-            db.commit()
-            cur.close()
-            flash('Registration successful', 'success')
-            return redirect(url_for('login'))
-        except Exception as e:
-            db.rollback()
-            print("Error: ", str(e))
-            flash('Registration failed', 'error')
-            return redirect(url_for('register'))
-    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('landing'))
+    flash("Logged out successfully", "success")
+    return redirect('/login')
 
-@app.route('/about')
-def about():
-    return render_template('about.html')
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
 
-@app.route('/search', methods=['GET', 'POST'])
-def search():
-    if 'user_id' not in session:
-        flash('You need to log in to search', 'error')
-        return redirect(url_for('login'))
-
-    results = []
-    query = ""
+@app.route('/create_profile', methods=['GET', 'POST'])
+@login_required
+def create_profile():
     if request.method == 'POST':
-        query = request.form['query']
+        name = request.form['name']
         db = get_db()
         cur = db.cursor()
+        cur.execute("INSERT INTO players (user_id, name) VALUES (%s, %s)", (session['user_id'], name))
+        db.commit()
+        cur.close()
+        return redirect('/dashboard')
+    return render_template('create_profile.html')
 
-        # Search in teams
+@app.route('/matches/new', methods=['GET', 'POST'])
+@login_required
+def new_match():
+    db = get_db()
+    cur = db.cursor()
+
+    if request.method == 'POST':
+        p1 = request.form['player1_id']
+        p2 = request.form['player2_id']
+        date = request.form['scheduled_at']
+
         cur.execute(
-            "SELECT team_id, name, 'team' AS source FROM teams WHERE name ILIKE %s",
-            ('%' + query + '%', ))
-        results.extend(cur.fetchall())
+            "INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
+            (p1, p2, date)
+        )
+        db.commit()
+        return redirect('/matches')
 
-        # Search in coaches
+    cur.execute("SELECT id, name FROM players")
+    players = cur.fetchall()
+    cur.close()
+
+    return render_template('new_match.html', players=players)
+
+@app.route('/matches')
+@login_required
+def matches():
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute("""
+        SELECT m.id, p1.name, p2.name, m.scheduled_at,
+               m.score_player1, m.score_player2, m.is_completed,
+               p1.user_id, p2.user_id
+        FROM matches m
+        JOIN players p1 ON m.player1_id = p1.id
+        JOIN players p2 ON m.player2_id = p2.id
+    """)
+    raw_matches = cur.fetchall()
+    cur.close()
+
+    matches = []
+    for m in raw_matches:
+        matches.append({
+            'id': m[0],
+            'player1': m[1],
+            'player2': m[2],
+            'scheduled_at': m[3],
+            'score1': m[4],
+            'score2': m[5],
+            'is_completed': m[6],
+            'can_edit': session['role'] == 'admin' or session['user_id'] in (m[7], m[8])
+        })
+
+    return render_template('matches.html', matches=matches)
+
+@app.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
+@login_required
+def score_match(match_id):
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute("""
+        SELECT m.id, m.player1_id, m.player2_id, m.scheduled_at,
+               m.score_player1, m.score_player2, m.is_completed,
+               p1.name, p2.name, p1.user_id, p2.user_id
+        FROM matches m
+        JOIN players p1 ON m.player1_id = p1.id
+        JOIN players p2 ON m.player2_id = p2.id
+        WHERE m.id = %s
+    """, (match_id,))
+    m = cur.fetchone()
+    cur.close()
+
+    if not m:
+        return "Match not found", 404
+
+    if session['role'] != 'admin' and session['user_id'] not in (m[9], m[10]):
+        return "Unauthorized", 403
+
+    match = {
+        'id': m[0],
+        'player1': m[7],
+        'player2': m[8],
+        'scheduled_at': m[3],
+        'score1': m[4],
+        'score2': m[5],
+        'is_completed': m[6]
+    }
+
+    if request.method == 'POST':
+        score1 = request.form['score1']
+        score2 = request.form['score2']
+
+        db = get_db()
+        cur = db.cursor()
         cur.execute(
-            "SELECT coach_id, name, 'coach' AS source FROM coaches WHERE name ILIKE %s",
-            ('%' + query + '%', ))
-        results.extend(cur.fetchall())
-
-        # Search in players
-        cur.execute(
-            "SELECT player_id, name, 'player' AS source FROM players WHERE name ILIKE %s",
-            ('%' + query + '%', ))
-        results.extend(cur.fetchall())
-
-        # Search in stadiums
-        cur.execute(
-            "SELECT stadium_id, name, 'stadium' AS source FROM stadiums WHERE name ILIKE %s",
-            ('%' + query + '%', ))
-        results.extend(cur.fetchall())
-
-        # Search in leagues
-        cur.execute(
-            "SELECT league_id, name, 'league' AS source FROM leagues WHERE name ILIKE %s",
-            ('%' + query + '%', ))
-        results.extend(cur.fetchall())
-
+            "UPDATE matches SET score_player1 = %s, score_player2 = %s, is_completed = TRUE WHERE id = %s",
+            (score1, score2, match_id)
+        )
+        db.commit()
         cur.close()
 
-    return render_template('search.html', results=results, query=query)
+        return redirect('/matches')
 
-@app.route('/admin')
-def admin():
-    if 'user_id' not in session or not session.get('is_admin'):
-        return redirect(url_for('login'))
-    return render_template('admin.html')
+    return render_template('enter_score.html', match=match)
 
-@app.route('/user')
-def user():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+@app.route('/leaderboard')
+@login_required
+def leaderboard():
     db = get_db()
     cur = db.cursor()
-    cur.execute('SELECT * FROM users;')
-    users = cur.fetchall()
+    cur.execute("""
+        SELECT p.name,
+               COUNT(m.id) as games_played,
+               SUM(
+                   CASE
+                       WHEN (m.player1_id = p.id AND m.score_player1 > m.score_player2)
+                         OR (m.player2_id = p.id AND m.score_player2 > m.score_player1)
+                       THEN 1 ELSE 0
+                   END
+               ) as wins
+        FROM players p
+        LEFT JOIN matches m ON p.id IN (m.player1_id, m.player2_id)
+        GROUP BY p.name
+        ORDER BY wins DESC NULLS LAST
+    """)
+    rows = cur.fetchall()
     cur.close()
-    return render_template('user.html', users=users)
+    return render_template('leaderboard.html', rows=rows)
 
-@app.route('/add_user', methods=['GET', 'POST'])
-def add_user():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    if request.method == 'POST':
-        try:
-            db = get_db()
-            cur = db.cursor()
-            username = request.form['username']
-            password = request.form['password']
-            email = request.form['email']
-
-            # Hash the password
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-            cur.execute(
-                'INSERT INTO users (username, password, email) VALUES (%s, %s, %s)',
-                (username, hashed_password, email))
-            db.commit()
-            cur.close()
-            flash('User added successfully', 'success')
-            return redirect(url_for('user'))
-        except Exception as e:
-            db.rollback()
-            print("Error: ", str(e))
-            flash('Failed to add user', 'error')
-            return redirect(url_for('add_user'))
-    return render_template('add_user.html')
-
-@app.route('/profile', methods=['GET', 'POST'])
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    db = get_db()
-    cur = db.cursor()
-    user_id = session['user_id']
-
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-
-        # Check if the username already exists
-        cur.execute(
-            'SELECT * FROM users WHERE username = %s AND user_id != %s',
-            (username, user_id))
-        existing_user = cur.fetchone()
-        if existing_user:
-            flash('Username already taken', 'error')
-            return redirect(url_for('profile'))
-
-        # Check if the email already exists
-        cur.execute('SELECT * FROM users WHERE email = %s AND user_id != %s',
-                    (email, user_id))
-        existing_email = cur.fetchone()
-        if existing_email:
-            flash('Email already registered', 'error')
-            return redirect(url_for('profile'))
-
-        # Hash the password if it is updated
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-        cur.execute(
-            'UPDATE users SET username = %s, email = %s, password = %s WHERE user_id = %s',
-            (username, email, hashed_password, user_id))
-        db.commit()
-        flash('Profile updated successfully', 'success')
-        return redirect(url_for('profile'))
-
-    cur.execute('SELECT username, email FROM users WHERE user_id = %s',
-                (user_id, ))
-    user = cur.fetchone()
-    cur.close()
-
-    return render_template('profile.html', user=user)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")

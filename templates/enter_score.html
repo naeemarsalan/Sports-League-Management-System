@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Score{% endblock %}
+
+{% block content %}
+  <h1>Enter Score</h1>
+  <p><strong>{{ match.player1 }}</strong> vs <strong>{{ match.player2 }}</strong></p>
+  <form method="POST">
+    <label>{{ match.player1 }} Score: <input type="number" name="score1" required></label><br>
+    <label>{{ match.player2 }} Score: <input type="number" name="score2" required></label><br>
+    <button type="submit">Submit Score</button>
+  </form>
+{% endblock %}

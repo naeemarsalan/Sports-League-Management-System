@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard{% endblock %}
+
+{% block content %}
+  <h1>Top Players</h1>
+  <table>
+    <tr>
+      <th>Player</th>
+      <th>Matches Played</th>
+      <th>Wins</th>
+    </tr>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row[0] }}</td>
+      <td>{{ row[1] }}</td>
+      <td>{{ row[2] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}

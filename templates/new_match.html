@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Match{% endblock %}
+
+{% block content %}
+  <h1>Schedule a New Match</h1>
+  <form method="POST">
+    <label>Player 1:
+      <select name="player1_id">
+        {% for player in players %}
+          <option value="{{ player[0] }}">{{ player[1] }}</option>
+        {% endfor %}
+      </select>
+    </label><br>
+
+    <label>Player 2:
+      <select name="player2_id">
+        {% for player in players %}
+          <option value="{{ player[0] }}">{{ player[1] }}</option>
+        {% endfor %}
+      </select>
+    </label><br>
+
+    <label>Scheduled Time: <input type="datetime-local" name="scheduled_at" required></label><br>
+    <button type="submit">Schedule Match</button>
+  </form>
+{% endblock %}

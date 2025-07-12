@@ -3,6 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
+    working_dir: /app
     ports:
       - "5000:5000"
     volumes:
@@ -15,6 +16,10 @@ services:
     environment:
       - FLASK_APP=main.py
       - FLASK_ENV=development
+      - SECRET_KEY=${SECRET_KEY}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
@@ -26,20 +31,20 @@ services:
     image: postgres:16.2
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
       - ./init-db.sh:/docker-entrypoint-initdb.d/0-init-db.sh
+      - ./schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
     env_file:
       - .env
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-sports_league_owner}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sports_league_password}
-      - POSTGRES_DB=${POSTGRES_DB:-sports_league}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     networks:
       - sports_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sports_league_owner} -d ${POSTGRES_DB:-sports_league}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -49,4 +54,4 @@ volumes:
 
 networks:
   sports_network:
-    driver: bridge 
+    driver: bridge
