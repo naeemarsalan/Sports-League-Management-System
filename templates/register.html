@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Register{% endblock %}
-
 {% block content %}
   <h1>Register</h1>
   <form method="POST">
@@ -9,5 +7,5 @@
     <label>Password: <input type="password" name="password" required></label><br>
     <button type="submit">Register</button>
   </form>
-  <p>Already have an account? <a href="/login">Login here</a></p>
+  <p>Already registered? <a href="{{ url_for('login') }}">Login</a></p>
 {% endblock %}

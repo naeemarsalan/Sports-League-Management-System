@@ -1,11 +1,9 @@
 {% extends "base.html" %}
-
 {% block title %}Create Profile{% endblock %}
-
 {% block content %}
-  <h1>Create Your Player Profile</h1>
+  <h1>Create Your Profile</h1>
   <form method="POST">
-    <label>Name: <input type="text" name="name" required></label><br>
-    <button type="submit">Create Profile</button>
+    <label>Display Name: <input type="text" name="name" required></label><br>
+    <button type="submit">Create</button>
   </form>
 {% endblock %}

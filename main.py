@@ -44,7 +44,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        role = 'player'  # Self-registration always assigns 'player'
+        role = 'player'  # Force all self-registered users to be players
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -105,11 +105,11 @@ def matches():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT m.id, p1.name, p2.name, m.date, m.score1, m.score2
+        SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
-        ORDER BY m.date DESC
+        ORDER BY m.scheduled_at DESC
     """)
     matches = cur.fetchall()
     cur.close()
@@ -126,12 +126,12 @@ def new_match():
     players = cur.fetchall()
 
     if request.method == 'POST':
-        player1_id = request.form['player1']
-        player2_id = request.form['player2']
-        date = request.form['date']
+        player1_id = request.form['player1_id']
+        player2_id = request.form['player2_id']
+        scheduled_at = request.form['scheduled_at']
 
-        cur.execute("INSERT INTO matches (player1_id, player2_id, date) VALUES (%s, %s, %s)",
-                    (player1_id, player2_id, date))
+        cur.execute("INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
+                    (player1_id, player2_id, scheduled_at))
         conn.commit()
         flash("Match scheduled!", "success")
         return redirect(url_for('matches'))
@@ -165,7 +165,7 @@ def enter_score(match_id):
     if request.method == 'POST':
         score1 = request.form['score1']
         score2 = request.form['score2']
-        cur.execute("UPDATE matches SET score1 = %s, score2 = %s WHERE id = %s",
+        cur.execute("UPDATE matches SET score_player1 = %s, score_player2 = %s, is_completed = TRUE WHERE id = %s",
                     (score1, score2, match_id))
         conn.commit()
         flash("Score submitted!", "success")
@@ -183,11 +183,12 @@ def leaderboard():
     cur = conn.cursor()
     cur.execute("""
         SELECT p.name,
-               SUM(CASE WHEN (p.id = m.player1_id AND m.score1 > m.score2) OR 
-                            (p.id = m.player2_id AND m.score2 > m.score1) THEN 1 ELSE 0 END) AS wins,
+               SUM(CASE WHEN (p.id = m.player1_id AND m.score_player1 > m.score_player2) OR 
+                            (p.id = m.player2_id AND m.score_player2 > m.score_player1) THEN 1 ELSE 0 END) AS wins,
                COUNT(m.id) AS games_played
         FROM players p
         LEFT JOIN matches m ON p.id IN (m.player1_id, m.player2_id)
+        WHERE m.is_completed = TRUE
         GROUP BY p.id
         ORDER BY wins DESC
     """)

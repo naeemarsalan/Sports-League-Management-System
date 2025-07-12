@@ -3,37 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Pool League{% endblock %}</title>
-
-  <!-- External stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-  <!-- Optional inline fallback / overrides -->
-  <style>
-    body { font-family: sans-serif; padding: 2em; background-color: #f4f4f4; }
-    h1 { color: #333; }
-    a { color: #0066cc; text-decoration: none; margin-right: 10px; }
-    nav { margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
-    form { margin-top: 1em; }
-    input, select, button { margin: 5px 0; padding: 6px; }
-  </style>
 </head>
 <body>
   <nav>
-    {% if session['user_id'] %}
-      <a href="/dashboard">Dashboard</a>
-      <a href="/matches">Matches</a>
-      <a href="/matches/new">Schedule Match</a>
-      <a href="/leaderboard">Leaderboard</a>
-      <a href="/logout">Logout</a>
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('matches') }}">Matches</a>
+      <a href="{{ url_for('new_match') }}">Schedule Match</a>
+      <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
-      <a href="/login">Login</a>
-      <a href="/register">Register</a>
+      <a href="{{ url_for('login') }}">Login</a>
+      <a href="{{ url_for('register') }}">Register</a>
     {% endif %}
   </nav>
 
-  {% block content %}
-  {% endblock %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
 </body>
 </html>
