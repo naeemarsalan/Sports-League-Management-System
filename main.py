@@ -1,227 +1,221 @@
-from flask import Flask, render_template, request, redirect, session, flash
-from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 import psycopg2
 import os
 
 app = Flask(__name__)
-app.secret_key = "super-secret"
+app.secret_key = os.getenv('SECRET_KEY', 'dev')
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-def get_db():
-    return psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB", "sports_league"),
-        user=os.getenv("POSTGRES_USER", "sports_league_owner"),
-        password=os.getenv("POSTGRES_PASSWORD", "sports_league_password"),
-        host="db"
-    )
 
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
+
+
+def is_admin():
+    return session.get("role") == "admin"
+
+
+def login_required(view):
+    def wrapped_view(*args, **kwargs):
         if 'user_id' not in session:
-            flash("You must be logged in.", "error")
-            return redirect('/login')
-        return f(*args, **kwargs)
-    return wrapper
+            return redirect(url_for('login'))
+        return view(*args, **kwargs)
+    wrapped_view.__name__ = view.__name__
+    return wrapped_view
+
+
+def admin_required(view):
+    def wrapped_view(*args, **kwargs):
+        if not is_admin():
+            flash("Admin access required.", "danger")
+            return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
+    wrapped_view.__name__ = view.__name__
+    return wrapped_view
+
 
 @app.route('/')
-def home():
-    return redirect('/dashboard')
+def index():
+    return redirect(url_for('login'))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
-        role = request.form.get('role', 'player')
+        password = request.form['password']
+        role = 'player'  # Self-registration always assigns 'player'
 
-        db = get_db()
-        cur = db.cursor()
-        cur.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
-            (username, password, role)
-        )
-        db.commit()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        if cur.fetchone():
+            flash("Username already exists.", "danger")
+        else:
+            cur.execute(
+                "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                (username, password, role)
+            )
+            conn.commit()
+            flash("Registration successful!", "success")
+            return redirect(url_for('login'))
         cur.close()
-
-        flash("Registration successful. Please login.", "success")
-        return redirect('/login')
-
+        conn.close()
     return render_template('register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT id, password_hash, role FROM users WHERE username = %s", (request.form['username'],))
+        username = request.form['username']
+        password = request.form['password']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
         user = cur.fetchone()
         cur.close()
+        conn.close()
 
-        if user and check_password_hash(user[1], request.form['password']):
+        if user:
             session['user_id'] = user[0]
-            session['role'] = user[2]
-            return redirect('/dashboard')
-
-        flash("Invalid login credentials", "error")
-        return redirect('/login')
-
+            session['username'] = user[1]
+            session['role'] = user[3]
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid credentials', 'danger')
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash("Logged out successfully", "success")
-    return redirect('/login')
+    return redirect(url_for('login'))
+
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/create_profile', methods=['GET', 'POST'])
-@login_required
-def create_profile():
-    if request.method == 'POST':
-        name = request.form['name']
-        db = get_db()
-        cur = db.cursor()
-        cur.execute("INSERT INTO players (user_id, name) VALUES (%s, %s)", (session['user_id'], name))
-        db.commit()
-        cur.close()
-        return redirect('/dashboard')
-    return render_template('create_profile.html')
-
-@app.route('/matches/new', methods=['GET', 'POST'])
-@login_required
-def new_match():
-    db = get_db()
-    cur = db.cursor()
-
-    if request.method == 'POST':
-        p1 = request.form['player1_id']
-        p2 = request.form['player2_id']
-        date = request.form['scheduled_at']
-
-        cur.execute(
-            "INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
-            (p1, p2, date)
-        )
-        db.commit()
-        return redirect('/matches')
-
-    cur.execute("SELECT id, name FROM players")
-    players = cur.fetchall()
-    cur.close()
-
-    return render_template('new_match.html', players=players)
 
 @app.route('/matches')
 @login_required
 def matches():
-    db = get_db()
-    cur = db.cursor()
-
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("""
-        SELECT m.id, p1.name, p2.name, m.scheduled_at,
-               m.score_player1, m.score_player2, m.is_completed,
-               p1.user_id, p2.user_id
+        SELECT m.id, p1.name, p2.name, m.date, m.score1, m.score2
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
+        ORDER BY m.date DESC
     """)
-    raw_matches = cur.fetchall()
+    matches = cur.fetchall()
     cur.close()
-
-    matches = []
-    for m in raw_matches:
-        matches.append({
-            'id': m[0],
-            'player1': m[1],
-            'player2': m[2],
-            'scheduled_at': m[3],
-            'score1': m[4],
-            'score2': m[5],
-            'is_completed': m[6],
-            'can_edit': session['role'] == 'admin' or session['user_id'] in (m[7], m[8])
-        })
-
+    conn.close()
     return render_template('matches.html', matches=matches)
+
+
+@app.route('/matches/new', methods=['GET', 'POST'])
+@login_required
+def new_match():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM players")
+    players = cur.fetchall()
+
+    if request.method == 'POST':
+        player1_id = request.form['player1']
+        player2_id = request.form['player2']
+        date = request.form['date']
+
+        cur.execute("INSERT INTO matches (player1_id, player2_id, date) VALUES (%s, %s, %s)",
+                    (player1_id, player2_id, date))
+        conn.commit()
+        flash("Match scheduled!", "success")
+        return redirect(url_for('matches'))
+
+    cur.close()
+    conn.close()
+    return render_template('new_match.html', players=players)
+
 
 @app.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
 @login_required
-def score_match(match_id):
-    db = get_db()
-    cur = db.cursor()
+def enter_score(match_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-    cur.execute("""
-        SELECT m.id, m.player1_id, m.player2_id, m.scheduled_at,
-               m.score_player1, m.score_player2, m.is_completed,
-               p1.name, p2.name, p1.user_id, p2.user_id
-        FROM matches m
-        JOIN players p1 ON m.player1_id = p1.id
-        JOIN players p2 ON m.player2_id = p2.id
-        WHERE m.id = %s
-    """, (match_id,))
-    m = cur.fetchone()
-    cur.close()
+    cur.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
+    match = cur.fetchone()
 
-    if not m:
-        return "Match not found", 404
+    if not match:
+        flash("Match not found.", "danger")
+        return redirect(url_for('matches'))
 
-    if session['role'] != 'admin' and session['user_id'] not in (m[9], m[10]):
-        return "Unauthorized", 403
+    user_id = session.get('user_id')
+    cur.execute("SELECT id FROM players WHERE user_id = %s", (user_id,))
+    player = cur.fetchone()
 
-    match = {
-        'id': m[0],
-        'player1': m[7],
-        'player2': m[8],
-        'scheduled_at': m[3],
-        'score1': m[4],
-        'score2': m[5],
-        'is_completed': m[6]
-    }
+    if not player or player[0] not in (match[1], match[2]):
+        flash("You can only score matches you're involved in.", "danger")
+        return redirect(url_for('matches'))
 
     if request.method == 'POST':
         score1 = request.form['score1']
         score2 = request.form['score2']
+        cur.execute("UPDATE matches SET score1 = %s, score2 = %s WHERE id = %s",
+                    (score1, score2, match_id))
+        conn.commit()
+        flash("Score submitted!", "success")
+        return redirect(url_for('matches'))
 
-        db = get_db()
-        cur = db.cursor()
-        cur.execute(
-            "UPDATE matches SET score_player1 = %s, score_player2 = %s, is_completed = TRUE WHERE id = %s",
-            (score1, score2, match_id)
-        )
-        db.commit()
-        cur.close()
-
-        return redirect('/matches')
-
+    cur.close()
+    conn.close()
     return render_template('enter_score.html', match=match)
+
 
 @app.route('/leaderboard')
 @login_required
 def leaderboard():
-    db = get_db()
-    cur = db.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("""
         SELECT p.name,
-               COUNT(m.id) as games_played,
-               SUM(
-                   CASE
-                       WHEN (m.player1_id = p.id AND m.score_player1 > m.score_player2)
-                         OR (m.player2_id = p.id AND m.score_player2 > m.score_player1)
-                       THEN 1 ELSE 0
-                   END
-               ) as wins
+               SUM(CASE WHEN (p.id = m.player1_id AND m.score1 > m.score2) OR 
+                            (p.id = m.player2_id AND m.score2 > m.score1) THEN 1 ELSE 0 END) AS wins,
+               COUNT(m.id) AS games_played
         FROM players p
         LEFT JOIN matches m ON p.id IN (m.player1_id, m.player2_id)
-        GROUP BY p.name
-        ORDER BY wins DESC NULLS LAST
+        GROUP BY p.id
+        ORDER BY wins DESC
     """)
-    rows = cur.fetchall()
+    leaderboard = cur.fetchall()
     cur.close()
-    return render_template('leaderboard.html', rows=rows)
+    conn.close()
+    return render_template('leaderboard.html', leaderboard=leaderboard)
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+
+@app.route('/profile/create', methods=['GET', 'POST'])
+@login_required
+def create_profile():
+    user_id = session.get('user_id')
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        name = request.form['name']
+        cur.execute("INSERT INTO players (name, user_id) VALUES (%s, %s)", (name, user_id))
+        conn.commit()
+        flash("Profile created!", "success")
+        return redirect(url_for('dashboard'))
+
+    cur.close()
+    conn.close()
+    return render_template('create_profile.html')
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
