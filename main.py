@@ -104,17 +104,49 @@ def dashboard():
 def matches():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
+
+    # Get filters from query string
+    status = request.args.get('status')
+    player = request.args.get('player')
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+
+    query = """
         SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
-        ORDER BY m.scheduled_at DESC
-    """)
+        WHERE 1=1
+    """
+    filters = []
+
+    # Apply filters
+    if status == 'upcoming':
+        query += " AND m.is_completed = FALSE"
+    elif status == 'completed':
+        query += " AND m.is_completed = TRUE"
+
+    if player:
+        query += " AND (p1.name ILIKE %s OR p2.name ILIKE %s)"
+        filters.extend([f"%{player}%", f"%{player}%"])
+
+    if from_date:
+        query += " AND m.scheduled_at >= %s"
+        filters.append(from_date)
+
+    if to_date:
+        query += " AND m.scheduled_at <= %s"
+        filters.append(to_date)
+
+    query += " ORDER BY m.scheduled_at DESC"
+
+    cur.execute(query, filters)
     matches = cur.fetchall()
     cur.close()
     conn.close()
+
     return render_template('matches.html', matches=matches)
+
 
 
 @app.route('/matches/new', methods=['GET', 'POST'])
@@ -274,3 +306,4 @@ def create_profile():
 
 if __name__ == '__main__':
     app.run(debug=True)
+

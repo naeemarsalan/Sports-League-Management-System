@@ -3,6 +3,27 @@
 
 {% block content %}
   <h1>All Matches</h1>
+
+  <form method="get" action="{{ url_for('matches') }}">
+    <label for="status">Status:</label>
+    <select name="status" id="status">
+      <option value="">All</option>
+      <option value="upcoming" {% if request.args.get('status') == 'upcoming' %}selected{% endif %}>Upcoming</option>
+      <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+    </select>
+
+    <label for="player">Player:</label>
+    <input type="text" name="player" id="player" value="{{ request.args.get('player', '') }}">
+
+    <label for="from_date">From:</label>
+    <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}">
+
+    <label for="to_date">To:</label>
+    <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}">
+
+    <button type="submit">Filter</button>
+  </form>
+
   <table>
     <thead>
       <tr>
@@ -19,9 +40,9 @@
     <tbody>
       {% for match in matches %}
         <tr>
-          <td>{{ match[1] }}</td>  {# Player 1 name #}
-          <td>{{ match[2] }}</td>  {# Player 2 name #}
-          <td>{{ match[3] }}</td>  {# Scheduled at #}
+          <td>{{ match[1] }}</td>
+          <td>{{ match[2] }}</td>
+          <td>{{ match[3] }}</td>
           <td>
             {% if match[4] is not none and match[5] is not none %}
               {{ match[4] }} - {{ match[5] }}
