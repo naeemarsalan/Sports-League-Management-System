@@ -118,7 +118,7 @@ def matches():
 
 
 @app.route('/matches/new', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def new_match():
     conn = get_db_connection()
     cur = conn.cursor()
