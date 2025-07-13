@@ -60,7 +60,7 @@
           {% if session['role'] == 'admin' %}
           <td>
             {% if match[4] is not none and match[5] is not none %}
-              <form method="POST" action="{{ url_for('reset_match', match_id=match[0]) }}" style="display:inline;">
+              <form method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:inline;">
                 <button type="submit" onclick="return confirm('Reset this match?')">Reset Match</button>
               </form>
             {% else %}
