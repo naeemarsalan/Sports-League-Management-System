@@ -15,7 +15,7 @@
       {% endif %}
       <a href="{{ url_for('player.leaderboard') }}">Leaderboard</a>
       {% if session['role'] == 'admin' %}
-        <li><a href="{{ url_for('admin.manage_players') }}">Manage Players</a></li>
+        <a href="{{ url_for('admin.manage_players') }}">Manage Players</a>
       {% endif %}
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
