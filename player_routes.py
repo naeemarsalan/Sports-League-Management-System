@@ -21,7 +21,8 @@ def matches():
     to_date = request.args.get('to_date')
 
     query = """
-        SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2, m.player1_id, m.player2_id
+        SELECT m.id, p1.name, p2.name, m.week_commencing, m.scheduled_at,
+               m.score_player1, m.score_player2, m.player1_id, m.player2_id
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
@@ -39,19 +40,18 @@ def matches():
         filters.extend([f"%{player}%", f"%{player}%"])
 
     if from_date:
-        query += " AND m.scheduled_at >= %s"
+        query += " AND m.week_commencing >= %s"
         filters.append(from_date)
 
     if to_date:
-        query += " AND m.scheduled_at <= %s"
+        query += " AND m.week_commencing <= %s"
         filters.append(to_date)
 
-    query += " ORDER BY m.scheduled_at DESC"
+    query += " ORDER BY m.week_commencing DESC, m.scheduled_at ASC"
 
     cur.execute(query, filters)
     matches = cur.fetchall()
 
-    # ✅ Do this BEFORE closing the cursor!
     cur.execute("SELECT id, name FROM players ORDER BY name")
     all_players = cur.fetchall()
 
@@ -59,6 +59,7 @@ def matches():
     conn.close()
 
     return render_template('matches.html', matches=matches, all_players=all_players)
+
 
 
 @player_bp.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
