@@ -4,7 +4,7 @@
 {% block content %}
   <h1>All Matches</h1>
 
-  <form method="get" action="{{ request.path }}">
+  <form method="get" action="{{ url_for(request.endpoint) }}">
     <label for="status">Status:</label>
     <select name="status" id="status">
       <option value="">All</option>
@@ -32,9 +32,7 @@
         <th>Scheduled At</th>
         <th>Score</th>
         <th>Status</th>
-        {% if session['role'] == 'admin' %}
         <th>Actions</th>
-        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -57,17 +55,26 @@
               Upcoming
             {% endif %}
           </td>
-          {% if session['role'] == 'admin' %}
           <td>
-            {% if match[4] is not none and match[5] is not none %}
-              <form method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:inline;">
-                <button type="submit" onclick="return confirm('Reset this match?')">Reset Match</button>
-              </form>
+            {% set player_id = session.get('player_id') %}
+            {% if session['role'] == 'admin' %}
+              {% if match[4] is not none and match[5] is not none %}
+                <form method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:inline;">
+                  <button type="submit" onclick="return confirm('Reset this match?')">Reset Match</button>
+                </form>
+              {% else %}
+                —
+              {% endif %}
+            {% elif player_id == match[6] or player_id == match[7] %}
+              {% if match[4] is none or match[5] is none %}
+                <a href="{{ url_for('player.enter_score', match_id=match[0]) }}">Enter Score</a>
+              {% else %}
+                —
+              {% endif %}
             {% else %}
               —
             {% endif %}
           </td>
-          {% endif %}
         </tr>
       {% endfor %}
     </tbody>

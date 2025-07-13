@@ -51,6 +51,15 @@ def login():
             session['user_id'] = user[0]
             session['username'] = user[1]
             session['role'] = user[3]
+            # Fetch and store player's ID if they're a player
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM players WHERE user_id = %s", (user[0],))
+            player = cur.fetchone()
+            if player:
+                session['player_id'] = player[0]
+            cur.close()
+            conn.close()
             return redirect(url_for('player.dashboard'))
         else:
             flash('Invalid credentials', 'danger')

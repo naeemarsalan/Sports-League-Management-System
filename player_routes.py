@@ -19,7 +19,7 @@ def matches():
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
     query = """
-        SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2
+        SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2, m.player1_id, m.player2_id
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
