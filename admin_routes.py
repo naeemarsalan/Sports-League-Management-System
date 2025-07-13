@@ -3,6 +3,8 @@ from functools import wraps
 from db import get_db
 from db import get_db_connection 
 from auth_utils import admin_required
+import csv
+from io import TextIOWrapper
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -131,3 +133,51 @@ def reset_password(user_id):
     cur.close()
     conn.close()
     return render_template('reset_password.html', username=username, user_id=user_id)
+
+@admin_bp.route('/matches/upload', methods=['GET', 'POST'])
+@admin_required
+def upload_matches():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        file = request.files.get('csv_file')
+        if not file or not file.filename.endswith('.csv'):
+            flash('Please upload a valid CSV file.', 'danger')
+            return redirect(url_for('admin.upload_matches'))
+
+        try:
+            reader = csv.DictReader(TextIOWrapper(file, encoding='utf-8'))
+            for row in reader:
+                player1_name = row['player1'].strip()
+                player2_name = row['player2'].strip()
+                scheduled_at = row['scheduled_at'].strip()
+
+                cur.execute("SELECT id FROM players WHERE name = %s", (player1_name,))
+                player1 = cur.fetchone()
+
+                cur.execute("SELECT id FROM players WHERE name = %s", (player2_name,))
+                player2 = cur.fetchone()
+
+                if not player1 or not player2:
+                    flash(f"Player not found: {player1_name if not player1 else player2_name}", 'danger')
+                    continue
+
+                cur.execute(
+                    "INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
+                    (player1[0], player2[0], scheduled_at)
+                )
+            conn.commit()
+            flash('Matches uploaded successfully.', 'success')
+        except Exception as e:
+            conn.rollback()
+            flash(f'Error uploading CSV: {str(e)}', 'danger')
+
+        finally:
+            cur.close()
+            conn.close()
+        return redirect(url_for('admin.upload_matches'))
+
+    cur.close()
+    conn.close()
+    return render_template('upload_matches.html')
