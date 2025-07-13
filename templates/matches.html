@@ -64,21 +64,19 @@
             {% set player_id = session.get('player_id') %}
             {% if session['role'] == 'admin' %}
               {% if match[4] is not none and match[5] is not none %}
-                <form method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:inline;">
-                  <button type="submit" onclick="return confirm('Reset this match?')">Reset Match</button>
-                </form>
+                <a href="#" onclick="event.preventDefault(); if(confirm('Reset this match?')) { document.getElementById('reset-form-{{ match[0] }}').submit(); }">Reset Match</a>
+                <form id="reset-form-{{ match[0] }}" method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:none;"></form>
               {% else %}
                 —
               {% endif %}
+            {% endif %}
+
             {% if session['role'] == 'admin' or player_id == match[6] or player_id == match[7] %}
               {% if match[4] is none or match[5] is none %}
                 <a href="{{ url_for('player.enter_score', match_id=match[0]) }}">Enter Score</a>
               {% else %}
                 —
               {% endif %}
-            {% else %}
-              —
-            {% endif %}
             {% else %}
               —
             {% endif %}
