@@ -61,7 +61,7 @@ def manage_players():
     cur.close()
     return render_template('manage_players.html', players=players, users=users)
 
-@app.route('/admin/matches/<int:match_id>/reset', methods=['POST'])
+@admin_bp.route('/admin/matches/<int:match_id>/reset', methods=['POST'])
 @admin_required
 def reset_match(match_id):
     conn = get_db_connection()
