@@ -2,67 +2,64 @@
 {% block title %}Manage Players{% endblock %}
 
 {% block content %}
-<h1>Manage Players</h1>
+  <h1>Manage Players</h1>
 
-<!-- Add / Edit Player Form -->
-<form method="POST" action="{{ url_for('admin.manage_players') }}">
-  <input type="hidden" name="player_id" id="player_id">
+  <form method="POST" action="{{ url_for('admin.manage_players') }}">
+    <input type="hidden" name="player_id" value="{{ request.form.get('player_id', '') }}">
+    
+    <label for="name">Player Name:</label>
+    <input type="text" name="name" required value="{{ request.form.get('name', '') }}">
 
-  <label for="name">Player Name:</label>
-  <input type="text" name="name" id="name" required>
+    <label for="user_id">Linked User:</label>
+    <select name="user_id" required>
+      {% for user in users %}
+        <option value="{{ user[0] }}" {% if request.form.get('user_id') == user[0]|string %}selected{% endif %}>
+          {{ user[1] }}
+        </option>
+      {% endfor %}
+    </select>
 
-  <label for="user_id">Linked User:</label>
-  <select name="user_id" id="user_id" required>
-    {% for user in users %}
-      <option value="{{ user[0] }}">{{ user[1] }}</option>
-    {% endfor %}
-  </select>
+    <button type="submit" name="submit">Save Player</button>
+  </form>
 
-  <button type="submit" name="submit">Save Player</button>
-</form>
-
-<hr>
-
-<!-- Player Table -->
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Linked Username</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for player in players %}
+  <h2>Existing Players</h2>
+  <table>
+    <thead>
       <tr>
-        <td>{{ player[1] }}</td>
-        <td>
-          {% for user in users %}
-            {% if user[0] == player[2] %}
-              {{ user[1] }}
-            {% endif %}
-          {% endfor %}
-        </td>
-        <td>
-          <!-- Edit button -->
-          <button onclick="editPlayer('{{ player[0] }}', '{{ player[1] }}', '{{ player[2] }}')">Edit</button>
-
-          <!-- Delete form -->
-          <form method="POST" action="{{ url_for('admin.manage_players') }}" style="display:inline;">
-            <input type="hidden" name="deleteEntityId" value="{{ player[0] }}">
-            <button type="submit" name="delete" onclick="return confirm('Are you sure you want to delete this player?');">Delete</button>
-          </form>
-        </td>
+        <th>Name</th>
+        <th>Linked Username</th>
+        <th>Actions</th>
       </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for player in players %}
+        <tr>
+          <td>{{ player[1] }}</td>
+          <td>
+            {% for user in users %}
+              {% if user[0] == player[2] %}
+                {{ user[1] }}
+              {% endif %}
+            {% endfor %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.manage_players') }}" style="display:inline;">
+              <input type="hidden" name="player_id" value="{{ player[0] }}">
+              <input type="hidden" name="name" value="{{ player[1] }}">
+              <input type="hidden" name="user_id" value="{{ player[2] }}">
+              <button type="submit" name="submit">Edit</button>
+            </form>
 
-<script>
-function editPlayer(id, name, userId) {
-  document.getElementById('player_id').value = id;
-  document.getElementById('name').value = name;
-  document.getElementById('user_id').value = userId;
-}
-</script>
+            <form method="POST" action="{{ url_for('admin.manage_players') }}" style="display:inline;" 
+                  onsubmit="return confirm('Are you sure you want to delete this player?');">
+              <input type="hidden" name="deleteEntityId" value="{{ player[0] }}">
+              <button type="submit" name="delete">Delete</button>
+            </form>
+
+            <a href="{{ url_for('admin.reset_password', user_id=player[2]) }}">Reset Password</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

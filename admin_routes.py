@@ -99,3 +99,35 @@ def new_match():
     cur.close()
     conn.close()
     return render_template('new_match.html', players=players)
+
+
+@admin_bp.route('/admin/reset_password/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def reset_password(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
+
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for('admin.manage_players'))
+
+    username = user[0]
+
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+        else:
+            cur.execute("UPDATE users SET password = %s WHERE id = %s", (password, user_id))
+            conn.commit()
+            flash(f"Password for {username} has been reset.", "success")
+            return redirect(url_for('admin.manage_players'))
+
+    cur.close()
+    conn.close()
+    return render_template('reset_password.html', username=username, user_id=user_id)

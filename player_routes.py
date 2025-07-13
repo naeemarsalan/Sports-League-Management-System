@@ -183,3 +183,27 @@ def create_profile():
     cur.close()
     conn.close()
     return render_template('create_profile.html')
+
+
+@player_bp.route('/profile/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT password FROM users WHERE id = %s", (session['user_id'],))
+        result = cur.fetchone()
+        if not result or result[0] != current_password:
+            flash("Current password is incorrect.", "danger")
+        else:
+            cur.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, session['user_id']))
+            conn.commit()
+            flash("Password updated successfully.", "success")
+        cur.close()
+        conn.close()
+        return redirect(url_for('player.dashboard'))
+
+    return render_template('change_password.html')
