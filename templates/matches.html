@@ -20,12 +20,16 @@
       {% endfor %}
     </select>
 
-    <label for="from_date">From:</label>
-    <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}">
-
-    <label for="to_date">To:</label>
-    <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}">
-
+    <label for="week">Week:</label>
+    <select name="week" id="week">
+      <option value="">All Weeks</option>
+      {% for week in weeks %}
+        <option value="{{ week }}" {% if request.args.get('week') == week %}selected{% endif %}>
+          {{ week }}
+        </option>
+      {% endfor %}
+    </select>
+    
     <button type="submit">Filter</button>
   </form>
 

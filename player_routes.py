@@ -17,8 +17,7 @@ def matches():
 
     status = request.args.get('status')
     player = request.args.get('player')
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
+    week = request.args.get('week')
 
     query = """
         SELECT m.id, p1.name, p2.name, m.week_commencing, m.scheduled_at,
@@ -39,27 +38,32 @@ def matches():
         query += " AND (p1.name ILIKE %s OR p2.name ILIKE %s)"
         filters.extend([f"%{player}%", f"%{player}%"])
 
-    if from_date:
-        query += " AND m.week_commencing >= %s"
-        filters.append(from_date)
-
-    if to_date:
-        query += " AND m.week_commencing <= %s"
-        filters.append(to_date)
+    if week:
+        query += " AND m.week_commencing = %s"
+        filters.append(week)
 
     query += " ORDER BY m.week_commencing DESC, m.scheduled_at ASC"
 
     cur.execute(query, filters)
     matches = cur.fetchall()
 
+    # Populate dropdown list of weeks
+    cur.execute("SELECT DISTINCT week_commencing FROM matches ORDER BY week_commencing DESC")
+    weeks = [row[0].strftime('%Y-%m-%d') for row in cur.fetchall()]
+
+    # Populate dropdown list of players
     cur.execute("SELECT id, name FROM players ORDER BY name")
     all_players = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template('matches.html', matches=matches, all_players=all_players)
-
+    return render_template(
+        'matches.html',
+        matches=matches,
+        all_players=all_players,
+        weeks=weeks
+    )
 
 
 @player_bp.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
