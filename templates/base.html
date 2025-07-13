@@ -17,6 +17,7 @@
       {% if session['role'] == 'admin' %}
         <a href="{{ url_for('admin.manage_players') }}">Manage Players</a>
       {% endif %}
+      <a href="{{ url_for('player.change_password') }}">Change Password</a>
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
       <a href="{{ url_for('login') }}">Login</a>

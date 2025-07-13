@@ -189,21 +189,26 @@ def create_profile():
 @login_required
 def change_password():
     if request.method == 'POST':
-        current_password = request.form['current_password']
         new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if new_password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return redirect(url_for('player.change_password'))
 
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT password FROM users WHERE id = %s", (session['user_id'],))
-        result = cur.fetchone()
-        if not result or result[0] != current_password:
-            flash("Current password is incorrect.", "danger")
-        else:
+        try:
             cur.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, session['user_id']))
             conn.commit()
             flash("Password updated successfully.", "success")
-        cur.close()
-        conn.close()
+        except Exception as e:
+            conn.rollback()
+            flash("Error updating password: " + str(e), "danger")
+        finally:
+            cur.close()
+            conn.close()
         return redirect(url_for('player.dashboard'))
 
     return render_template('change_password.html')
+
