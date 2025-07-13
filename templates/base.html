@@ -14,6 +14,9 @@
         <a href="{{ url_for('admin.new_match') }}">Schedule Match</a>
       {% endif %}
       <a href="{{ url_for('player.leaderboard') }}">Leaderboard</a>
+      {% if session['role'] == 'admin' %}
+        <li><a href="{{ url_for('admin.manage_players') }}">Manage Players</a></li>
+      {% endif %}
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
       <a href="{{ url_for('login') }}">Login</a>
