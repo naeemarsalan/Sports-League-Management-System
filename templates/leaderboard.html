@@ -1,15 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Leaderboard{% endblock %}
+
 {% block content %}
   <h1>Leaderboard</h1>
   <table>
-    <tr><th>Player</th><th>Wins</th><th>Games Played</th></tr>
-    {% for player in leaderboard %}
-    <tr>
-      <td>{{ player[0] }}</td>
-      <td>{{ player[1] }}</td>
-      <td>{{ player[2] }}</td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Points</th>
+        <th>Wins</th>
+        <th>Draws</th>
+        <th>Losses</th>
+        <th>Games Played</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in leaderboard %}
+        <tr>
+          <td>{{ row[0] }}</td>  {# name #}
+          <td>{{ row[2] }}</td>  {# points #}
+          <td>{{ row[3] }}</td>  {# wins #}
+          <td>{{ row[4] }}</td>  {# draws #}
+          <td>{{ row[5] }}</td>  {# losses #}
+          <td>{{ row[1] }}</td>  {# games_played #}
+        </tr>
+      {% endfor %}
+    </tbody>
   </table>
 {% endblock %}

@@ -8,10 +8,16 @@
 <body>
   <nav>
     {% if session.get('user_id') %}
-      <a href="{{ url_for('dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('matches') }}">Matches</a>
-      <a href="{{ url_for('new_match') }}">Schedule Match</a>
-      <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+      <a href="{{ url_for('player.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('player.matches') }}">Matches</a>
+      {% if session['role'] == 'admin' %}
+        <a href="{{ url_for('admin.new_match') }}">Schedule Match</a>
+      {% endif %}
+      <a href="{{ url_for('player.leaderboard') }}">Leaderboard</a>
+      {% if session['role'] == 'admin' %}
+        <a href="{{ url_for('admin.manage_players') }}">Manage Players</a>
+      {% endif %}
+      <a href="{{ url_for('player.change_password') }}">Change Password</a>
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
       <a href="{{ url_for('login') }}">Login</a>

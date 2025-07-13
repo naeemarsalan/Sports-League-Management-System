@@ -3,8 +3,12 @@
 {% block content %}
   <h1>Enter Score</h1>
   <form method="POST">
-    <label>Score for Player 1: <input type="number" name="score1" required></label><br>
-    <label>Score for Player 2: <input type="number" name="score2" required></label><br>
+    <label for="score1">Enter {{ match[1] }}'s Score:</label>
+    <input type="number" name="score1" required>
+
+    <label for="score2">Enter {{ match[2] }}'s Score:</label>
+    <input type="number" name="score2" required>
+
     <button type="submit">Submit</button>
   </form>
 {% endblock %}

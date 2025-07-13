@@ -2,6 +2,9 @@
 {% block title %}Schedule Match{% endblock %}
 {% block content %}
   <h1>Schedule a New Match</h1>
+
+  <a href="{{ url_for('admin.upload_matches') }}">Bulk Upload via CSV</a>
+
   <form method="POST">
     <label>Player 1:
       <select name="player1_id">

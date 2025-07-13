@@ -13,3 +13,6 @@ def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
         db.close()
+
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
