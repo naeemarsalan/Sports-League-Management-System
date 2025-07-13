@@ -44,7 +44,10 @@ def matches():
     matches = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('matches.html', matches=matches)
+    # Load all players for the dropdown
+    cur.execute("SELECT id, name FROM players ORDER BY name")
+    all_players = cur.fetchall()
+    return render_template('matches.html', matches=matches, all_players=all_players)
 
 @player_bp.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
 @login_required

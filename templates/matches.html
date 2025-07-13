@@ -13,7 +13,12 @@
     </select>
 
     <label for="player">Player:</label>
-    <input type="text" name="player" id="player" value="{{ request.args.get('player', '') }}">
+    <select name="player" id="player">
+      <option value="">All</option>
+      {% for player in all_players %}
+        <option value="{{ player[1] }}" {% if request.args.get('player') == player[1] %}selected{% endif %}>{{ player[1] }}</option>
+      {% endfor %}
+    </select>
 
     <label for="from_date">From:</label>
     <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}">
