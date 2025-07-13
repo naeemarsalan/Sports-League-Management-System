@@ -1,17 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from functools import wraps
 from db import get_db
+from db import get_db_connection 
+from main import admin_required
 
 admin_bp = Blueprint('admin', __name__)
-
-def admin_required(f):
-    @wraps(f)
-    def wrap(*args, **kwargs):
-        if 'user_id' not in session or not session.get('is_admin'):
-            flash('You need to be an admin to access this page', 'error')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return wrap
 
 def get_existing_data(table_name):
     db = get_db()
@@ -83,3 +76,26 @@ def reset_match(match_id):
         cur.close()
         conn.close()
     return redirect(url_for('matches'))
+
+@admin_bp.route('/matches/new', methods=['GET', 'POST'])
+@admin_required
+def new_match():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM players")
+    players = cur.fetchall()
+
+    if request.method == 'POST':
+        player1_id = request.form['player1_id']
+        player2_id = request.form['player2_id']
+        scheduled_at = request.form['scheduled_at']
+
+        cur.execute("INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
+                    (player1_id, player2_id, scheduled_at))
+        conn.commit()
+        flash("Match scheduled!", "success")
+        return redirect(url_for('matches'))
+
+    cur.close()
+    conn.close()
+    return render_template('new_match.html', players=players)
