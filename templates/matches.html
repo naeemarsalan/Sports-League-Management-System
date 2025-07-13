@@ -54,7 +54,7 @@
           <td>
             {% if match[4] %}
               {{ match[4] }}
-            {% elif session['role'] == 'admin' or player_id == match[7] or player_id == match[8] %}
+            {% elif session['role'] == 'admin' or session.get('player_id') == match[7] or session.get('player_id') == match[8] %}
               <form method="POST" action="{{ url_for('player.schedule_match_inline', match_id=match[0]) }}">
                 <input type="datetime-local" name="scheduled_at" required>
                 <button type="submit">Schedule</button>
@@ -62,7 +62,7 @@
             {% else %}
               Not Scheduled
             {% endif %}
-          </td> <!-- scheduled_at -->
+          </td>
           <td>
             {% if match[5] is not none and match[6] is not none %}
               {{ match[5] }} - {{ match[6] }}
@@ -71,10 +71,26 @@
             {% endif %}
           </td>
           <td>
-            {% if match[5] is not none and match[6] is not none %}
+            {% set week_start = match[3] %}
+            {% set scheduled = match[4] %}
+            {% set score1 = match[5] %}
+            {% set score2 = match[6] %}
+            {% set overdue = false %}
+            {% if week_start %}
+              {% set sunday = week_start + timedelta(days=6) %}
+              {% if score1 is none and score2 is none and datetime.utcnow().date() > sunday %}
+                {% set overdue = true %}
+              {% endif %}
+            {% endif %}
+
+            {% if score1 is not none and score2 is not none %}
               Completed
-            {% else %}
+            {% elif overdue %}
+              Overdue!
+            {% elif scheduled %}
               Upcoming
+            {% else %}
+              Not Scheduled
             {% endif %}
           </td>
           <td>

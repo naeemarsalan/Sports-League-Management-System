@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from auth_utils import login_required
 from db import get_db_connection
+from datetime import datetime, timedelta
 
 player_bp = Blueprint('player', __name__)
 
@@ -8,6 +9,7 @@ player_bp = Blueprint('player', __name__)
 @login_required
 def dashboard():
     return render_template('dashboard.html')
+
 
 @player_bp.route('/matches')
 @login_required
@@ -47,11 +49,9 @@ def matches():
     cur.execute(query, filters)
     matches = cur.fetchall()
 
-    # Populate dropdown list of weeks
     cur.execute("SELECT DISTINCT week_commencing FROM matches ORDER BY week_commencing DESC")
     weeks = [row[0].strftime('%Y-%m-%d') for row in cur.fetchall()]
 
-    # Populate dropdown list of players
     cur.execute("SELECT id, name FROM players ORDER BY name")
     all_players = cur.fetchall()
 
@@ -62,8 +62,46 @@ def matches():
         'matches.html',
         matches=matches,
         all_players=all_players,
-        weeks=weeks
+        weeks=weeks,
+        datetime=datetime,
+        timedelta=timedelta
     )
+
+
+@player_bp.route('/matches/<int:match_id>/schedule', methods=['POST'])
+@login_required
+def schedule_match_inline(match_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT player1_id, player2_id FROM matches WHERE id = %s", (match_id,))
+    match = cur.fetchone()
+
+    if not match:
+        flash("Match not found.", "danger")
+        return redirect(url_for('player.matches'))
+
+    cur.execute("SELECT id FROM players WHERE user_id = %s", (session['user_id'],))
+    player = cur.fetchone()
+
+    is_admin = session.get('role') == 'admin'
+    if not is_admin and (not player or player[0] not in match):
+        flash("You are not authorized to schedule this match.", "danger")
+        return redirect(url_for('player.matches'))
+
+    scheduled_at = request.form['scheduled_at']
+    try:
+        datetime.strptime(scheduled_at, "%Y-%m-%dT%H:%M")
+        cur.execute("UPDATE matches SET scheduled_at = %s WHERE id = %s", (scheduled_at, match_id))
+        conn.commit()
+        flash("Match successfully scheduled!", "success")
+    except ValueError:
+        flash("Invalid date format.", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for('player.matches'))
 
 
 @player_bp.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
@@ -80,7 +118,7 @@ def enter_score(match_id):
         WHERE m.id = %s
     """, (match_id,))
     match = cur.fetchone()
-    
+
     if not match:
         flash("Match not found.", "danger")
         return redirect(url_for('player.matches'))
@@ -88,12 +126,11 @@ def enter_score(match_id):
     user_id = session.get('user_id')
     role = session.get('role')
 
-    # Check if user is involved in the match or is admin
     cur.execute("SELECT id FROM players WHERE user_id = %s", (user_id,))
     player = cur.fetchone()
     is_admin = role == 'admin'
 
-    if not is_admin and (not player or player[0] not in (match[1], match[2])):
+    if not is_admin and (not player or player[0] not in (match[6], match[7])):
         flash("You can only score matches you're involved in.", "danger")
         return redirect(url_for('player.matches'))
 
@@ -173,6 +210,7 @@ def leaderboard():
     conn.close()
     return render_template('leaderboard.html', leaderboard=leaderboard)
 
+
 @player_bp.route('/profile/create', methods=['GET', 'POST'])
 @login_required
 def create_profile():
@@ -216,39 +254,3 @@ def change_password():
         return redirect(url_for('player.dashboard'))
 
     return render_template('change_password.html')
-
-@player_bp.route('/matches/<int:match_id>/schedule', methods=['POST'])
-@login_required
-def schedule_match_inline(match_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("SELECT player1_id, player2_id FROM matches WHERE id = %s", (match_id,))
-    match = cur.fetchone()
-
-    if not match:
-        flash("Match not found.", "danger")
-        return redirect(url_for('player.matches'))
-
-    cur.execute("SELECT id FROM players WHERE user_id = %s", (session['user_id'],))
-    player = cur.fetchone()
-
-    is_admin = session.get('role') == 'admin'
-    if not is_admin and (not player or player[0] not in match):
-        flash("You are not authorized to schedule this match.", "danger")
-        return redirect(url_for('player.matches'))
-
-    scheduled_at = request.form['scheduled_at']
-    try:
-        from datetime import datetime
-        datetime.strptime(scheduled_at, "%Y-%m-%dT%H:%M")
-        cur.execute("UPDATE matches SET scheduled_at = %s WHERE id = %s", (scheduled_at, match_id))
-        conn.commit()
-        flash("Match successfully scheduled!", "success")
-    except ValueError:
-        flash("Invalid date format.", "danger")
-    finally:
-        cur.close()
-        conn.close()
-
-    return redirect(url_for('player.matches'))
