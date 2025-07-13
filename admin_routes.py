@@ -24,13 +24,18 @@ def manage_players():
 
     if request.method == 'POST':
         try:
-            # Handle delete action first
+            # ✅ Handle DELETE
             if 'delete' in request.form and 'deleteEntityId' in request.form:
                 player_id = request.form['deleteEntityId']
-                cur.execute('DELETE FROM players WHERE id = %s', (player_id,))
-                flash('Player deleted successfully', 'success')
 
-            # Handle add/update actions
+                # Delete all matches where player is involved
+                cur.execute('DELETE FROM matches WHERE player1_id = %s OR player2_id = %s', (player_id, player_id))
+
+                # Then delete the player
+                cur.execute('DELETE FROM players WHERE id = %s', (player_id,))
+                flash('Player and related matches deleted successfully', 'success')
+
+            # ✅ Handle ADD / UPDATE
             elif 'submit' in request.form:
                 player_id = request.form.get('player_id')
                 name = request.form['name']
@@ -56,7 +61,7 @@ def manage_players():
 
         return redirect(url_for('admin.manage_players'))
 
-    # GET method: load players and users for display
+    # ✅ GET: Show all players and users
     cur.execute('SELECT id, name, user_id FROM players')
     players = cur.fetchall()
 
