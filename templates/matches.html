@@ -65,12 +65,15 @@
               {% else %}
                 —
               {% endif %}
-            {% elif player_id == match[6] or player_id == match[7] %}
+            {% if session['role'] == 'admin' or player_id == match[6] or player_id == match[7] %}
               {% if match[4] is none or match[5] is none %}
                 <a href="{{ url_for('player.enter_score', match_id=match[0]) }}">Enter Score</a>
               {% else %}
                 —
               {% endif %}
+            {% else %}
+              —
+            {% endif %}
             {% else %}
               —
             {% endif %}
