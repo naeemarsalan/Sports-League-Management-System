@@ -111,7 +111,7 @@ def enter_score(match_id):
     cur = conn.cursor()
     cur.execute("""
         SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2,
-            m.player1_id, m.player2_id
+               m.player1_id, m.player2_id
         FROM matches m
         JOIN players p1 ON m.player1_id = p1.id
         JOIN players p2 ON m.player2_id = p2.id
@@ -126,6 +126,7 @@ def enter_score(match_id):
     user_id = session.get('user_id')
     role = session.get('role')
 
+    # ✅ Correct check: compare player.id with player1_id and player2_id
     cur.execute("SELECT id FROM players WHERE user_id = %s", (user_id,))
     player = cur.fetchone()
     is_admin = role == 'admin'
@@ -164,6 +165,7 @@ def enter_score(match_id):
     cur.close()
     conn.close()
     return render_template('enter_score.html', match=match)
+
 
 
 @player_bp.route('/leaderboard')
