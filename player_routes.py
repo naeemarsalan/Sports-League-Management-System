@@ -53,27 +53,41 @@ def enter_score(match_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
     match = cur.fetchone()
+    
     if not match:
         flash("Match not found.", "danger")
         return redirect(url_for('player.matches'))
+
     user_id = session.get('user_id')
+    role = session.get('role')
+
+    # Check if user is involved in the match or is admin
     cur.execute("SELECT id FROM players WHERE user_id = %s", (user_id,))
     player = cur.fetchone()
-    if not player or player[0] not in (match[1], match[2]):
+    is_admin = role == 'admin'
+
+    if not is_admin and (not player or player[0] not in (match[1], match[2])):
         flash("You can only score matches you're involved in.", "danger")
         return redirect(url_for('player.matches'))
+
     if request.method == 'POST':
         try:
             score1 = int(request.form['score1'])
             score2 = int(request.form['score2'])
+
             if not (-4 <= score1 <= 8) or not (-4 <= score2 <= 8):
                 flash("Scores must be between -4 and 8.", "danger")
                 return redirect(url_for('player.enter_score', match_id=match_id))
+
             if not ((score1 == 8 and score2 < 8) or (score2 == 8 and score1 < 8) or (score1 == 7 and score2 == 7)):
                 flash("Invalid result: One player must reach 8, or it must be 7–7 for a draw.", "danger")
                 return redirect(url_for('player.enter_score', match_id=match_id))
-            cur.execute("UPDATE matches SET score_player1 = %s, score_player2 = %s, is_completed = TRUE WHERE id = %s",
-                        (score1, score2, match_id))
+
+            cur.execute("""
+                UPDATE matches 
+                SET score_player1 = %s, score_player2 = %s, is_completed = TRUE 
+                WHERE id = %s
+            """, (score1, score2, match_id))
             conn.commit()
             flash("Score submitted!", "success")
         except ValueError:
@@ -82,9 +96,11 @@ def enter_score(match_id):
             cur.close()
             conn.close()
         return redirect(url_for('player.matches'))
+
     cur.close()
     conn.close()
     return render_template('enter_score.html', match=match)
+
 
 @player_bp.route('/leaderboard')
 @login_required
