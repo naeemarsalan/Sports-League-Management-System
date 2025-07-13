@@ -75,7 +75,7 @@ def reset_match(match_id):
     finally:
         cur.close()
         conn.close()
-    return redirect(url_for('matches'))
+    return redirect(url_for('player.matches'))
 
 @admin_bp.route('/matches/new', methods=['GET', 'POST'])
 @admin_required
@@ -94,7 +94,7 @@ def new_match():
                     (player1_id, player2_id, scheduled_at))
         conn.commit()
         flash("Match scheduled!", "success")
-        return redirect(url_for('matches'))
+        return redirect(url_for('player.matches'))
 
     cur.close()
     conn.close()
