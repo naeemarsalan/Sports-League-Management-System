@@ -51,7 +51,7 @@ def login():
             session['user_id'] = user[0]
             session['username'] = user[1]
             session['role'] = user[3]
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('player.dashboard'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
