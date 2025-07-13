@@ -162,8 +162,17 @@ def upload_matches():
             for row in reader:
                 player1_name = row['player1'].strip()
                 player2_name = row['player2'].strip()
-                scheduled_at = row['scheduled_at'].strip()
+                week_commencing = row['week_commencing'].strip()
 
+                # Validate date format
+                from datetime import datetime
+                try:
+                    datetime.strptime(week_commencing, "%Y-%m-%d")
+                except ValueError:
+                    flash(f"Invalid date format for match between {player1_name} and {player2_name}", 'danger')
+                    continue
+
+                # Look up player IDs
                 cur.execute("SELECT id FROM players WHERE name = %s", (player1_name,))
                 player1 = cur.fetchone()
 
@@ -174,19 +183,21 @@ def upload_matches():
                     flash(f"Player not found: {player1_name if not player1 else player2_name}", 'danger')
                     continue
 
+                # Insert match
                 cur.execute(
-                    "INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
-                    (player1[0], player2[0], scheduled_at)
+                    "INSERT INTO matches (player1_id, player2_id, week_commencing) VALUES (%s, %s, %s)",
+                    (player1[0], player2[0], week_commencing)
                 )
+
             conn.commit()
             flash('Matches uploaded successfully.', 'success')
         except Exception as e:
             conn.rollback()
             flash(f'Error uploading CSV: {str(e)}', 'danger')
-
         finally:
             cur.close()
             conn.close()
+
         return redirect(url_for('admin.upload_matches'))
 
     cur.close()
