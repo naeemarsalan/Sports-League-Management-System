@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, session, url_fo
 from functools import wraps
 from db import get_db
 from db import get_db_connection 
-from main import admin_required
+from auth_utils import admin_required
 
 admin_bp = Blueprint('admin', __name__)
 

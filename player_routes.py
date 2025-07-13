@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
-from main import login_required, get_db_connection
+from auth_utils import login_required
+from db import get_db_connection
 
 player_bp = Blueprint('player', __name__)
 

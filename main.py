@@ -11,25 +11,6 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 app.register_blueprint(admin_bp)
 app.register_blueprint(player_bp)
 
-def is_admin():
-    return session.get("role") == "admin"
-
-def login_required(view):
-    def wrapped_view(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        return view(*args, **kwargs)
-    wrapped_view.__name__ = view.__name__
-    return wrapped_view
-
-def admin_required(view):
-    def wrapped_view(*args, **kwargs):
-        if not is_admin():
-            flash("Admin access required.", "danger")
-            return redirect(url_for("dashboard"))
-        return view(*args, **kwargs)
-    wrapped_view.__name__ = view.__name__
-    return wrapped_view
 
 @app.route('/')
 def index():
