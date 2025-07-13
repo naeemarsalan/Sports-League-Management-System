@@ -66,7 +66,14 @@ def matches():
 def enter_score(match_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
+    cur.execute("""
+        SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2,
+            m.player1_id, m.player2_id
+        FROM matches m
+        JOIN players p1 ON m.player1_id = p1.id
+        JOIN players p2 ON m.player2_id = p2.id
+        WHERE m.id = %s
+    """, (match_id,))
     match = cur.fetchone()
     
     if not match:
