@@ -14,10 +14,12 @@ def dashboard():
 def matches():
     conn = get_db_connection()
     cur = conn.cursor()
+
     status = request.args.get('status')
     player = request.args.get('player')
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
+
     query = """
         SELECT m.id, p1.name, p2.name, m.scheduled_at, m.score_player1, m.score_player2, m.player1_id, m.player2_id
         FROM matches m
@@ -26,28 +28,38 @@ def matches():
         WHERE 1=1
     """
     filters = []
+
     if status == 'upcoming':
         query += " AND m.is_completed = FALSE"
     elif status == 'completed':
         query += " AND m.is_completed = TRUE"
+
     if player:
         query += " AND (p1.name ILIKE %s OR p2.name ILIKE %s)"
         filters.extend([f"%{player}%", f"%{player}%"])
+
     if from_date:
         query += " AND m.scheduled_at >= %s"
         filters.append(from_date)
+
     if to_date:
         query += " AND m.scheduled_at <= %s"
         filters.append(to_date)
+
     query += " ORDER BY m.scheduled_at DESC"
+
     cur.execute(query, filters)
     matches = cur.fetchall()
-    cur.close()
-    conn.close()
-    # Load all players for the dropdown
+
+    # ✅ Do this BEFORE closing the cursor!
     cur.execute("SELECT id, name FROM players ORDER BY name")
     all_players = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
     return render_template('matches.html', matches=matches, all_players=all_players)
+
 
 @player_bp.route('/matches/<int:match_id>/score', methods=['GET', 'POST'])
 @login_required
