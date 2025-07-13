@@ -90,17 +90,28 @@ def new_match():
     if request.method == 'POST':
         player1_id = request.form['player1_id']
         player2_id = request.form['player2_id']
-        scheduled_at = request.form['scheduled_at']
+        week_commencing = request.form['week_commencing']
 
-        cur.execute("INSERT INTO matches (player1_id, player2_id, scheduled_at) VALUES (%s, %s, %s)",
-                    (player1_id, player2_id, scheduled_at))
+        # Optional: Validate date format
+        from datetime import datetime
+        try:
+            datetime.strptime(week_commencing, "%Y-%m-%d")
+        except ValueError:
+            flash("Invalid date format for week commencing.", "danger")
+            return redirect(url_for('admin.new_match'))
+
+        cur.execute(
+            "INSERT INTO matches (player1_id, player2_id, week_commencing) VALUES (%s, %s, %s)",
+            (player1_id, player2_id, week_commencing)
+        )
         conn.commit()
-        flash("Match scheduled!", "success")
+        flash("Match created for week commencing " + week_commencing, "success")
         return redirect(url_for('player.matches'))
 
     cur.close()
     conn.close()
     return render_template('new_match.html', players=players)
+
 
 
 @admin_bp.route('/admin/reset_password/<int:user_id>', methods=['GET', 'POST'])
