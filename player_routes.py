@@ -213,3 +213,38 @@ def change_password():
 
     return render_template('change_password.html')
 
+@player_bp.route('/matches/<int:match_id>/schedule', methods=['POST'])
+@login_required
+def schedule_match_inline(match_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT player1_id, player2_id FROM matches WHERE id = %s", (match_id,))
+    match = cur.fetchone()
+
+    if not match:
+        flash("Match not found.", "danger")
+        return redirect(url_for('player.matches'))
+
+    cur.execute("SELECT id FROM players WHERE user_id = %s", (session['user_id'],))
+    player = cur.fetchone()
+
+    is_admin = session.get('role') == 'admin'
+    if not is_admin and (not player or player[0] not in match):
+        flash("You are not authorized to schedule this match.", "danger")
+        return redirect(url_for('player.matches'))
+
+    scheduled_at = request.form['scheduled_at']
+    try:
+        from datetime import datetime
+        datetime.strptime(scheduled_at, "%Y-%m-%dT%H:%M")
+        cur.execute("UPDATE matches SET scheduled_at = %s WHERE id = %s", (scheduled_at, match_id))
+        conn.commit()
+        flash("Match successfully scheduled!", "success")
+    except ValueError:
+        flash("Invalid date format.", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for('player.matches'))
