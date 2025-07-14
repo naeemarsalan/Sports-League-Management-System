@@ -1,24 +1,23 @@
 -- ✅ Insert users: 1 admin + 3 players
 INSERT INTO users (username, password, role) VALUES
   ('admin', 'admin123', 'admin'),
-  ('alice', 'alice123', 'player'),
-  ('bob', 'bob123', 'player'),
-  ('carol', 'carol123', 'player')
-ON CONFLICT (username) DO NOTHING;
-
--- ✅ Insert players linked to those users (assuming sequential user IDs)
--- Note: IDs will be 1 (admin), 2 (alice), 3 (bob), 4 (carol)
--- Insert player profiles linked to correct user IDs
--- ✅ Seed users (excluding admin, already created in 1-init-admin.sh)
-INSERT INTO users (username, password, role) VALUES
-  ('alice', 'alice123', 'player'),
-  ('bob', 'bob123', 'player'),
-  ('carol', 'carol123', 'player')
-ON CONFLICT (username) DO NOTHING;
+  ('adam', 'adam123', 'player'),
+  ('nathan', 'nathan123', 'player'),
+  ('reece', 'reece123', 'player'),
+  ('danny', 'danny123', 'player'),
+  ('simon', 'simon123', 'player'),
+  ('gaz', 'gaz123', 'player'),
+  ('mike', 'mike123', 'player'),
+  ('rob', 'rob123', 'player');
 
 -- ✅ Seed players, resolving user_id from usernames
 INSERT INTO players (name, user_id) VALUES
-  ('Alice A', (SELECT id FROM users WHERE username = 'alice')),
-  ('Bob B', (SELECT id FROM users WHERE username = 'bob')),
-  ('Carol C', (SELECT id FROM users WHERE username = 'carol'));
+  ('Adam Byron', (SELECT id FROM users WHERE username = 'adam')),
+  ('Nathan Fraser', (SELECT id FROM users WHERE username = 'nathan')),
+  ('Reece Fraser', (SELECT id FROM users WHERE username = 'reece')),
+  ('Danny Tatton', (SELECT id FROM users WHERE username = 'danny')),
+  ('Simon Knowles', (SELECT id FROM users WHERE username = 'simon')),
+  ('Gareth Caldwell', (SELECT id FROM users WHERE username = 'gaz')),
+  ('Mike Henderson', (SELECT id FROM users WHERE username = 'mike')),
+  ('Rob Oliver', (SELECT id FROM users WHERE username = 'rob'));
 
