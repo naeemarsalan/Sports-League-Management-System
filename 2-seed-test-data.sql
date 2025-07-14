@@ -1,6 +1,5 @@
 -- ✅ Insert users: 1 admin + 3 players
 INSERT INTO users (username, password, role) VALUES
-  ('admin', 'admin123', 'admin'),
   ('adam', 'adam123', 'player'),
   ('nathan', 'nathan123', 'player'),
   ('reece', 'reece123', 'player'),
