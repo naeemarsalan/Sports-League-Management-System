@@ -20,12 +20,16 @@
       {% endfor %}
     </select>
 
-    <label for="from_date">From:</label>
-    <input type="date" name="from_date" value="{{ request.args.get('from_date', '') }}">
-
-    <label for="to_date">To:</label>
-    <input type="date" name="to_date" value="{{ request.args.get('to_date', '') }}">
-
+    <label for="week">Week:</label>
+    <select name="week" id="week">
+      <option value="">All Weeks</option>
+      {% for week in weeks %}
+        <option value="{{ week }}" {% if request.args.get('week') == week %}selected{% endif %}>
+          {{ week }}
+        </option>
+      {% endfor %}
+    </select>
+    
     <button type="submit">Filter</button>
   </form>
 
@@ -34,6 +38,7 @@
       <tr>
         <th>Player 1</th>
         <th>Player 2</th>
+        <th>Week Commencing</th>
         <th>Scheduled At</th>
         <th>Score</th>
         <th>Status</th>
@@ -45,25 +50,53 @@
         <tr>
           <td>{{ match[1] }}</td>
           <td>{{ match[2] }}</td>
-          <td>{{ match[3] }}</td>
+          <td>{{ match[3] }}</td> <!-- week_commencing -->
           <td>
-            {% if match[4] is not none and match[5] is not none %}
-              {{ match[4] }} - {{ match[5] }}
+            {% if match[4] %}
+              {{ match[4] }}
+            {% elif session['role'] == 'admin' or session.get('player_id') == match[7] or session.get('player_id') == match[8] %}
+              <form method="POST" action="{{ url_for('player.schedule_match_inline', match_id=match[0]) }}">
+                <input type="datetime-local" name="scheduled_at" required>
+                <button type="submit">Schedule</button>
+              </form>
+            {% else %}
+              Not Scheduled
+            {% endif %}
+          </td>
+          <td>
+            {% if match[5] is not none and match[6] is not none %}
+              {{ match[5] }} - {{ match[6] }}
             {% else %}
               TBD
             {% endif %}
           </td>
           <td>
-            {% if match[4] is not none and match[5] is not none %}
+            {% set week_start = match[3] %}
+            {% set scheduled = match[4] %}
+            {% set score1 = match[5] %}
+            {% set score2 = match[6] %}
+            {% set overdue = false %}
+            {% if week_start %}
+              {% set sunday = week_start + timedelta(days=6) %}
+              {% if score1 is none and score2 is none and datetime.utcnow().date() > sunday %}
+                {% set overdue = true %}
+              {% endif %}
+            {% endif %}
+
+            {% if score1 is not none and score2 is not none %}
               Completed
-            {% else %}
+            {% elif overdue %}
+              Overdue!
+            {% elif scheduled %}
               Upcoming
+            {% else %}
+              Not Scheduled
             {% endif %}
           </td>
           <td>
             {% set player_id = session.get('player_id') %}
             {% if session['role'] == 'admin' %}
-              {% if match[4] is not none and match[5] is not none %}
+              {% if match[5] is not none and match[6] is not none %}
                 <a href="#" onclick="event.preventDefault(); if(confirm('Reset this match?')) { document.getElementById('reset-form-{{ match[0] }}').submit(); }">Reset Match</a>
                 <form id="reset-form-{{ match[0] }}" method="POST" action="{{ url_for('admin.reset_match', match_id=match[0]) }}" style="display:none;"></form>
               {% else %}
@@ -71,8 +104,8 @@
               {% endif %}
             {% endif %}
 
-            {% if session['role'] == 'admin' or player_id == match[6] or player_id == match[7] %}
-              {% if match[4] is none or match[5] is none %}
+            {% if session['role'] == 'admin' or player_id == match[7] or player_id == match[8] %}
+              {% if match[5] is none or match[6] is none %}
                 <a href="{{ url_for('player.enter_score', match_id=match[0]) }}">Enter Score</a>
               {% else %}
                 —

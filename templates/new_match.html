@@ -7,7 +7,7 @@
 
   <form method="POST">
     <label>Player 1:
-      <select name="player1_id">
+      <select name="player1_id" required>
         {% for player in players %}
           <option value="{{ player[0] }}">{{ player[1] }}</option>
         {% endfor %}
@@ -15,14 +15,17 @@
     </label><br>
 
     <label>Player 2:
-      <select name="player2_id">
+      <select name="player2_id" required>
         {% for player in players %}
           <option value="{{ player[0] }}">{{ player[1] }}</option>
         {% endfor %}
       </select>
     </label><br>
 
-    <label>Scheduled Time: <input type="datetime-local" name="scheduled_at" required></label><br>
-    <button type="submit">Schedule Match</button>
+    <label>Week Commencing:
+      <input type="date" name="week_commencing" required>
+    </label><br>
+
+    <button type="submit">Create Match</button>
   </form>
 {% endblock %}
