@@ -1,7 +1,9 @@
 import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createStackNavigator } from "@react-navigation/stack";
+import { Platform } from "react-native";
 import { useAuthStore } from "../state/useAuthStore";
 import { DashboardScreen } from "../screens/DashboardScreen";
 import { MatchesScreen } from "../screens/MatchesScreen";
@@ -14,7 +16,7 @@ import { ManagePlayersScreen } from "../screens/admin/ManagePlayersScreen";
 import { NewMatchScreen } from "../screens/admin/NewMatchScreen";
 import { colors } from "../theme/colors";
 
-const Stack = createNativeStackNavigator();
+const Stack = Platform.OS === "web" ? createStackNavigator() : createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const screenOptions = {
