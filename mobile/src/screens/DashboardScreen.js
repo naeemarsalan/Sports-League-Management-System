@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
@@ -13,19 +13,41 @@ export const DashboardScreen = ({ navigation }) => {
 
   return (
     <Screen>
-      <SectionHeader title={`Welcome, ${profile?.displayName ?? "Player"}`} subtitle={`${roleLabel} dashboard`} />
-      <Card>
+      <SectionHeader
+        title={`Welcome, ${profile?.displayName ?? "Player"}`}
+        subtitle={`${roleLabel} dashboard`}
+      />
+      <Card highlight>
         <Text style={styles.cardTitle}>Quick actions</Text>
-        <Button title="View Matches" onPress={() => navigation.navigate("Matches")} />
-        <Button title="Leaderboard" onPress={() => navigation.navigate("Leaderboard")} variant="outline" />
+        <Button
+          title="Challenge Player"
+          onPress={() => navigation.navigate("Challenge")}
+        />
+        <Button
+          title="View Matches"
+          onPress={() => navigation.navigate("Matches")}
+          variant="outline"
+        />
+        <Button
+          title="Leaderboard"
+          onPress={() => navigation.navigate("Leaderboard")}
+          variant="outline"
+        />
       </Card>
-      {profile?.role === "admin" ? (
+      {profile?.role === "admin" && (
         <Card>
           <Text style={styles.cardTitle}>Admin controls</Text>
-          <Button title="Manage Players" onPress={() => navigation.navigate("ManagePlayers")} />
-          <Button title="Create Match" onPress={() => navigation.navigate("NewMatch")} variant="outline" />
+          <Button
+            title="Manage Players"
+            onPress={() => navigation.navigate("ManagePlayers")}
+          />
+          <Button
+            title="Create Match (Admin)"
+            onPress={() => navigation.navigate("NewMatch")}
+            variant="outline"
+          />
         </Card>
-      ) : null}
+      )}
     </Screen>
   );
 };
@@ -35,6 +57,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 6,
+    marginBottom: 12,
   },
 });

@@ -1,18 +1,54 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { colors } from "../theme/colors";
 
-export const Card = ({ children, style }) => {
-  return <View style={[styles.card, style]}>{children}</View>;
+export const Card = ({ children, style, highlight = false, glow = false }) => {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(300)}
+      style={[
+        styles.container,
+        highlight && styles.highlight,
+        glow && styles.glow,
+        style,
+      ]}
+    >
+      <LinearGradient
+        colors={highlight ? [colors.cardHighlight, colors.card] : colors.gradientCard}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.gradient}
+      >
+        {children}
+      </LinearGradient>
+    </Animated.View>
+  );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
+  container: {
     borderRadius: 18,
-    padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  gradient: {
+    padding: 16,
+  },
+  highlight: {
+    borderColor: colors.borderAccent,
+  },
+  glow: {
+    shadowColor: colors.accent,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
 });
