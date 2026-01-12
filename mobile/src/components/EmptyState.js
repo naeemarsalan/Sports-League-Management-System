@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { Button } from "./Button";
 import { colors } from "../theme/colors";
 
@@ -23,7 +22,7 @@ export const EmptyState = ({
   const emoji = icons[icon] || icons.empty;
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.iconContainer}>
         <Text style={styles.icon}>{emoji}</Text>
       </View>
@@ -34,7 +33,7 @@ export const EmptyState = ({
           <Button title={actionTitle} onPress={onAction} />
         </View>
       )}
-    </Animated.View>
+    </View>
   );
 };
 

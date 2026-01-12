@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { MatchCard } from "../components/MatchCard";
 import { Screen } from "../components/Screen";
@@ -77,17 +76,15 @@ export const MatchesScreen = ({ navigation }) => {
     }, {});
   }, [profiles]);
 
-  const renderMatch = ({ item, index }) => (
-    <Animated.View entering={FadeInDown.delay(index * 30).duration(250)}>
-      <Pressable
-        onPress={() => {
-          Haptics.selectionAsync();
-          navigation.navigate("MatchDetail", { match: item, playersById });
-        }}
-      >
-        <MatchCard match={item} playersById={playersById} />
-      </Pressable>
-    </Animated.View>
+  const renderMatch = ({ item }) => (
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        navigation.navigate("MatchDetail", { match: item, playersById });
+      }}
+    >
+      <MatchCard match={item} playersById={playersById} />
+    </Pressable>
   );
 
   const ListHeader = () => (

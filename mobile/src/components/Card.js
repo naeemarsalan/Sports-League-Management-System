@@ -1,13 +1,11 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { colors } from "../theme/colors";
 
 export const Card = ({ children, style, highlight = false, glow = false }) => {
   return (
-    <Animated.View
-      entering={FadeIn.duration(300)}
+    <View
       style={[
         styles.container,
         highlight && styles.highlight,
@@ -23,7 +21,7 @@ export const Card = ({ children, style, highlight = false, glow = false }) => {
       >
         {children}
       </LinearGradient>
-    </Animated.View>
+    </View>
   );
 };
 

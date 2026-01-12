@@ -1,13 +1,6 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useState, useRef } from "react";
+import { Animated, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors } from "../theme/colors";
-
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 export const Input = ({
   label,
@@ -19,25 +12,9 @@ export const Input = ({
   autoCapitalize = "none",
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const borderColor = useSharedValue(colors.border);
-  const scale = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    borderColor: borderColor.value,
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handleFocus = () => {
-    setIsFocused(true);
-    borderColor.value = withTiming(colors.accent, { duration: 200 });
-    scale.value = withTiming(1.01, { duration: 150 });
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    borderColor.value = withTiming(colors.border, { duration: 200 });
-    scale.value = withTiming(1, { duration: 150 });
-  };
+  const handleFocus = () => setIsFocused(true);
+  const handleBlur = () => setIsFocused(false);
 
   return (
     <View style={styles.wrapper}>
@@ -46,8 +23,8 @@ export const Input = ({
           {label}
         </Text>
       )}
-      <AnimatedTextInput
-        style={[styles.input, animatedStyle]}
+      <TextInput
+        style={[styles.input, isFocused && styles.inputFocused]}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
@@ -82,6 +59,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: colors.textPrimary,
     borderWidth: 1.5,
+    borderColor: colors.border,
     fontSize: 16,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
   },
 });

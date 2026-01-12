@@ -1,83 +1,74 @@
-import React, { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  Easing,
-} from "react-native-reanimated";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, StyleSheet, View, Text } from "react-native";
 import { colors } from "../theme/colors";
 
 export const LoadingSpinner = ({ size = 40, color = colors.accent }) => {
-  const rotation = useSharedValue(0);
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.6);
+  const rotation = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 1000, easing: Easing.linear }),
-      -1,
-      false
+    const spinAnimation = Animated.loop(
+      Animated.timing(rotation, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
     );
 
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
     );
 
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 500 }),
-        withTiming(0.6, { duration: 500 })
-      ),
-      -1,
-      true
-    );
+    spinAnimation.start();
+    pulseAnimation.start();
+
+    return () => {
+      spinAnimation.stop();
+      pulseAnimation.stop();
+    };
   }, []);
 
-  const spinnerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { rotate: `${rotation.value}deg` },
-      { scale: scale.value },
-    ],
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  const spin = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
     <View style={styles.container}>
       <Animated.View
         style={[
           styles.glow,
-          glowStyle,
           {
             width: size * 1.5,
             height: size * 1.5,
             borderRadius: size * 0.75,
             backgroundColor: color,
+            transform: [{ scale }],
           },
         ]}
       />
       <Animated.View
-        style={[
-          spinnerStyle,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: 3,
-            borderColor: colors.border,
-            borderTopColor: color,
-          },
-        ]}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 3,
+          borderColor: colors.border,
+          borderTopColor: color,
+          transform: [{ rotate: spin }, { scale }],
+        }}
       />
     </View>
   );
@@ -90,9 +81,7 @@ export const LoadingOverlay = ({ visible, message }) => {
     <View style={styles.overlay}>
       <View style={styles.overlayContent}>
         <LoadingSpinner size={48} />
-        {message && (
-          <Animated.Text style={styles.message}>{message}</Animated.Text>
-        )}
+        {message && <Text style={styles.message}>{message}</Text>}
       </View>
     </View>
   );

@@ -1,7 +1,6 @@
 import React from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
@@ -24,36 +23,34 @@ const LeaderboardRow = ({ item, index }) => {
   const isTopThree = rank <= 3;
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 50).duration(300)}>
-      <LinearGradient
-        colors={isTopThree ? [rankStyle.bg, colors.surface] : [colors.surface, colors.surface]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[
-          styles.row,
-          isTopThree && { borderColor: rankStyle.border, borderWidth: 1 },
-        ]}
-      >
-        <View style={[styles.rankBadge, { backgroundColor: rankStyle.bg }]}>
-          <Text style={[styles.rank, { color: rankStyle.text }]}>{rank}</Text>
-        </View>
-        <Avatar name={item.name} size={40} rank={rank} />
-        <View style={styles.nameWrap}>
-          <Text style={[styles.name, isTopThree && { color: rankStyle.text }]}>
-            {item.name}
-          </Text>
-          <Text style={styles.meta}>
-            {item.wins}W · {item.draws}D · {item.losses}L
-          </Text>
-        </View>
-        <View style={styles.pointsWrap}>
-          <Text style={[styles.points, isTopThree && { color: rankStyle.text }]}>
-            {item.points}
-          </Text>
-          <Text style={styles.pointsLabel}>pts</Text>
-        </View>
-      </LinearGradient>
-    </Animated.View>
+    <LinearGradient
+      colors={isTopThree ? [rankStyle.bg, colors.surface] : [colors.surface, colors.surface]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={[
+        styles.row,
+        isTopThree && { borderColor: rankStyle.border, borderWidth: 1 },
+      ]}
+    >
+      <View style={[styles.rankBadge, { backgroundColor: rankStyle.bg }]}>
+        <Text style={[styles.rank, { color: rankStyle.text }]}>{rank}</Text>
+      </View>
+      <Avatar name={item.name} size={40} rank={rank} />
+      <View style={styles.nameWrap}>
+        <Text style={[styles.name, isTopThree && { color: rankStyle.text }]}>
+          {item.name}
+        </Text>
+        <Text style={styles.meta}>
+          {item.wins}W · {item.draws}D · {item.losses}L
+        </Text>
+      </View>
+      <View style={styles.pointsWrap}>
+        <Text style={[styles.points, isTopThree && { color: rankStyle.text }]}>
+          {item.points}
+        </Text>
+        <Text style={styles.pointsLabel}>pts</Text>
+      </View>
+    </LinearGradient>
   );
 };
 
