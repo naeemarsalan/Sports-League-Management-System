@@ -1,3 +1,4 @@
+const fetch = require("node-fetch");
 const DEFAULT_LIMIT = 100;
 
 function buildUrl(endpoint, path, params = {}) {

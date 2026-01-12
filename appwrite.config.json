@@ -1,0 +1,227 @@
+{
+    "projectId": "696436a5002d6f83aed7",
+    "projectName": "snookerpoolleague",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": true,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": true,
+            "teams": true,
+            "users": true,
+            "sites": true,
+            "functions": true,
+            "graphql": true,
+            "messaging": true
+        },
+        "auth": {
+            "methods": {
+                "jwt": true,
+                "phone": true,
+                "invites": true,
+                "anonymous": true,
+                "email-otp": true,
+                "magic-url": true,
+                "email-password": true
+            },
+            "security": {
+                "duration": 31536000,
+                "limit": 0,
+                "sessionsLimit": 10,
+                "passwordHistory": 0,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": false,
+                "mockNumbers": []
+            }
+        }
+    },
+    "tablesDB": [
+        {
+            "$id": "pool-league",
+            "name": "Pool League",
+            "enabled": true
+        }
+    ],
+    "tables": [
+        {
+            "$id": "profiles",
+            "$permissions": [
+                "read(\"users\")"
+            ],
+            "databaseId": "pool-league",
+            "name": "Profiles",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "displayName",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "legacyUserId",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "legacyPlayerId",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "profiles_name",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "displayName"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "matches",
+            "$permissions": [
+                "read(\"users\")"
+            ],
+            "databaseId": "pool-league",
+            "name": "Matches",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "player1Id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "player2Id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "weekCommencing",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "scheduledAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "scorePlayer1",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "scorePlayer2",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "isCompleted",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "matches_week",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "weekCommencing"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "matches_player1",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "player1Id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "matches_player2",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "player2Id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "matches_completed",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "isCompleted"
+                    ],
+                    "orders": []
+                }
+            ]
+        }
+    ]
+}

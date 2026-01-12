@@ -109,10 +109,14 @@ def parse_copy_blocks(path: str) -> Dict[str, List[Dict[str, Any]]]:
                 if not row_line:
                     break
                 row_line = row_line.rstrip("\n")
-                if row_line == r"\\.":
+                if row_line.strip() == r"\\.":
                     break
 
                 parsed = next(csv.reader([row_line], delimiter="\t"))
+                if len(parsed) != len(columns):
+                    break
+                if any(value.strip() == r"\\." for value in parsed):
+                    break
                 row: Dict[str, Any] = {}
                 for col, value in zip(columns, parsed):
                     row[col] = normalize_value(table, col, value)
@@ -124,17 +128,18 @@ def parse_copy_blocks(path: str) -> Dict[str, List[Dict[str, Any]]]:
 
 
 def normalize_value(table: str, column: str, value: str) -> Any:
-    if value == r"\\N":
+    cleaned = value.strip()
+    if cleaned in {r"\\N", r"\N", "NULL", ""}:
         return None
     if table in INT_FIELDS and column in INT_FIELDS[table]:
-        return int(value)
+        return int(cleaned)
     if table in BOOL_FIELDS and column in BOOL_FIELDS[table]:
-        return value.lower() in {"t", "true", "1"}
+        return cleaned.lower() in {"t", "true", "1"}
     if table in DATE_FIELDS and column in DATE_FIELDS[table]:
-        return datetime.strptime(value, "%Y-%m-%d").date().isoformat()
+        return datetime.strptime(cleaned, "%Y-%m-%d").date().isoformat()
     if table in DATETIME_FIELDS and column in DATETIME_FIELDS[table]:
-        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").isoformat()
-    return value
+        return datetime.strptime(cleaned, "%Y-%m-%d %H:%M:%S").isoformat()
+    return cleaned
 
 
 def normalize_email(username: str) -> str:
@@ -173,7 +178,7 @@ def migrate(
     players_by_user = {player["user_id"]: player for player in players}
 
     default_password = os.environ.get("DEFAULT_PASSWORD", "ChangeMe123!")
-    member_role = os.environ.get("APPWRITE_MEMBER_ROLE", "role:member")
+    member_role = os.environ.get("APPWRITE_MEMBER_ROLE", "users")
     admin_role = os.environ.get("APPWRITE_ADMIN_ROLE")
 
     user_map: Dict[int, str] = {}

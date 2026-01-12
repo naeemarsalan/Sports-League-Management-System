@@ -34,8 +34,18 @@ class AppwriteAdmin:
             timeout=30,
         )
         if response.status_code == 409:
-            return {"$id": payload.get("databaseId") if payload else "exists"}
-        response.raise_for_status()
+            if payload:
+                return {
+                    "$id": payload.get("collectionId")
+                    or payload.get("databaseId")
+                    or payload.get("key")
+                    or "exists"
+                }
+            return {"$id": "exists"}
+        if response.status_code >= 400:
+            raise SystemExit(
+                f"Appwrite error {response.status_code} for {path}: {response.text}"
+            )
         if response.content:
             return response.json()
         return {}
@@ -111,7 +121,7 @@ def main() -> None:
             "Missing APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, or APPWRITE_API_KEY"
         )
 
-    member_role = os.environ.get("APPWRITE_MEMBER_ROLE", "role:member")
+    member_role = os.environ.get("APPWRITE_MEMBER_ROLE", "users")
     admin_role = os.environ.get("APPWRITE_ADMIN_ROLE")
     admin = AppwriteAdmin(endpoint, project_id, api_key)
 
@@ -255,7 +265,7 @@ def main() -> None:
         "boolean",
         {
             "key": "isCompleted",
-            "required": True,
+            "required": False,
             "default": False,
             "array": False,
         },
