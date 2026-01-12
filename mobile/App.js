@@ -7,12 +7,9 @@ import {
   SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { Dimensions, Platform, UIManager } from "react-native";
-import { enableScreens } from "react-native-screens";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 
 const queryClient = new QueryClient();
-
-enableScreens(false);
 
 const hasNativeSafeArea =
   Platform.OS === "web" ||
