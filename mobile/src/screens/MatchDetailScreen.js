@@ -66,7 +66,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <Screen>
+    <Screen edges={[]}>
       <SectionHeader title="Match details" subtitle={`${player1} vs ${player2}`} />
       <Card>
         <Text style={styles.label}>Week commencing</Text>
