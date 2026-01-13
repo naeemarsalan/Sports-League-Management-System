@@ -31,7 +31,6 @@ export const ProfileSetupScreen = () => {
       await createProfile({
         userId: user.$id,
         displayName: displayName.trim(),
-        email: user.email,
         role: "player",
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
