@@ -22,10 +22,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.snookerpoolleague.app",
-      "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
-      }
+      "bundleIdentifier": "io.snookerpoolleague.app"
     },
     "android": {
       "adaptiveIcon": {
