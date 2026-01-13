@@ -36,7 +36,7 @@ const LeagueCard = ({ title, week, progress, onPress }) => (
         </View>
       </View>
       <View style={styles.leagueIconContainer}>
-        <Ionicons name="tennisball" size={48} color="rgba(255,255,255,0.3)" />
+        <Ionicons name="ellipse" size={48} color="rgba(255,255,255,0.3)" />
       </View>
     </LinearGradient>
   </Pressable>
@@ -142,7 +142,7 @@ export const DashboardScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>YOUR LEAGUES</Text>
         <LeagueCard
-          title="Sports League"
+          title="Snooker Pool League"
           week={currentWeek}
           progress={myStats.progress || 25}
           onPress={() => navigation.navigate("Leaderboard")}

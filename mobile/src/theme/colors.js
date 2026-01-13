@@ -1,32 +1,32 @@
 export const colors = {
-  // Backgrounds - dark navy
-  background: "#141922",
-  surface: "#1e2433",
-  surfaceAlt: "#252d3d",
-  card: "#1e2433",
-  cardHighlight: "#2a3347",
+  // Backgrounds - darker navy (more contrast)
+  background: "#0a0e14",
+  surface: "#141922",
+  surfaceAlt: "#1a2030",
+  card: "#141922",
+  cardHighlight: "#1e2633",
 
-  // Borders
-  border: "#333d52",
-  borderSubtle: "#252d3d",
+  // Borders - more subtle
+  border: "#1e2633",
+  borderSubtle: "#161c26",
   borderAccent: "rgba(45, 212, 191, 0.3)",
 
-  // Text
+  // Text - high contrast
   textPrimary: "#ffffff",
-  textSecondary: "#9ca3af",
+  textSecondary: "#b0b8c4",
   textMuted: "#6b7280",
-  textInverse: "#141922",
+  textInverse: "#0a0e14",
 
-  // Primary accent - teal/mint
-  accent: "#2dd4bf",
+  // Primary accent - teal/mint (brighter)
+  accent: "#34d9c3",
   accentDark: "#14b8a6",
   accentLight: "#5eead4",
-  accentSubtle: "rgba(45, 212, 191, 0.15)",
+  accentSubtle: "rgba(45, 212, 191, 0.12)",
   accentGlow: "rgba(45, 212, 191, 0.4)",
 
-  // Green for featured cards/leagues
-  greenCard: "#166534",
-  greenCardLight: "#22c55e",
+  // Green for featured cards/leagues (snooker green)
+  greenCard: "#0d4a25",
+  greenCardLight: "#1a7a42",
 
   // Rankings - gold, silver, bronze
   gold: "#fbbf24",
@@ -47,9 +47,9 @@ export const colors = {
   infoSubtle: "rgba(59, 130, 246, 0.15)",
 
   // Gradients (start, end)
-  gradientCard: ["#1e2433", "#252d3d"],
-  gradientAccent: ["#2dd4bf", "#14b8a6"],
+  gradientCard: ["#141922", "#1a2030"],
+  gradientAccent: ["#34d9c3", "#14b8a6"],
   gradientGold: ["#fbbf24", "#f59e0b"],
-  gradientSurface: ["#252d3d", "#1e2433"],
-  gradientGreen: ["#166534", "#15803d"],
+  gradientSurface: ["#1a2030", "#141922"],
+  gradientGreen: ["#0d4a25", "#1a7a42"],
 };

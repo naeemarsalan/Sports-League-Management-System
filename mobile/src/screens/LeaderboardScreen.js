@@ -59,10 +59,16 @@ const LeaderboardRow = ({ item, index }) => {
 };
 
 export const LeaderboardScreen = () => {
-  const { data = [], refetch, isFetching, isLoading } = useQuery({
+  const { data = [], refetch, isFetching, isLoading, isError, error } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: fetchLeaderboard,
+    retry: 2,
   });
+
+  // Log for debugging
+  if (isError) {
+    console.error("Leaderboard query error:", error);
+  }
 
   if (isLoading) {
     return (
