@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -10,9 +12,67 @@ import { Avatar } from "../components/Avatar";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { account } from "../lib/appwrite";
-import { updateProfile } from "../lib/profiles";
+import { updateProfile, listProfiles } from "../lib/profiles";
+import { listMatches } from "../lib/matches";
+import { fetchLeaderboard } from "../lib/leaderboard";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
+
+const StatBox = ({ value, label, color = colors.accent }) => (
+  <View style={styles.statBox}>
+    <Text style={[styles.statValue, { color }]}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const RecentMatchItem = ({ match, playersById, currentUserId }) => {
+  const isPlayer1 = match.player1Id === currentUserId;
+  const opponentId = isPlayer1 ? match.player2Id : match.player1Id;
+  const opponentName = playersById[opponentId]?.displayName ?? "Unknown";
+  const myScore = isPlayer1 ? match.scorePlayer1 : match.scorePlayer2;
+  const theirScore = isPlayer1 ? match.scorePlayer2 : match.scorePlayer1;
+
+  let result = "pending";
+  let resultColor = colors.textMuted;
+  let resultIcon = "~";
+
+  if (match.isCompleted && myScore !== null && theirScore !== null) {
+    if (myScore > theirScore) {
+      result = "Won";
+      resultColor = colors.success;
+      resultIcon = "W";
+    } else if (myScore < theirScore) {
+      result = "Lost";
+      resultColor = colors.danger;
+      resultIcon = "L";
+    } else {
+      result = "Draw";
+      resultColor = colors.warning;
+      resultIcon = "D";
+    }
+  }
+
+  return (
+    <View style={styles.matchItem}>
+      <View style={[styles.resultBadge, { backgroundColor: resultColor + "20" }]}>
+        <Text style={[styles.resultIcon, { color: resultColor }]}>{resultIcon}</Text>
+      </View>
+      <View style={styles.matchInfo}>
+        <Text style={styles.opponentName}>vs {opponentName}</Text>
+        <Text style={styles.matchDate}>
+          {match.weekCommencing?.slice(0, 10) ?? "TBD"}
+        </Text>
+      </View>
+      {match.isCompleted ? (
+        <Text style={[styles.matchScore, { color: resultColor }]}>
+          {myScore} - {theirScore}
+        </Text>
+      ) : (
+        <Text style={styles.matchPending}>Pending</Text>
+      )}
+    </View>
+  );
+};
 
 export const ProfileScreen = () => {
   const { profile, user, bootstrap, logout, loading } = useAuthStore();
@@ -21,6 +81,51 @@ export const ProfileScreen = () => {
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const { data: leaderboard = [] } = useQuery({
+    queryKey: ["leaderboard"],
+    queryFn: fetchLeaderboard,
+    enabled: !!profile,
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: listProfiles,
+    enabled: !!profile,
+  });
+
+  const { data: recentMatches = [] } = useQuery({
+    queryKey: ["matches", undefined, profile?.$id],
+    queryFn: () => listMatches({ playerId: profile?.$id }),
+    enabled: !!profile,
+  });
+
+  const playersById = useMemo(() => {
+    return profiles.reduce((acc, p) => {
+      acc[p.$id] = p;
+      return acc;
+    }, {});
+  }, [profiles]);
+
+  const myStats = useMemo(() => {
+    const entry = leaderboard.find((p) => p.playerId === profile?.$id);
+    if (entry) {
+      return {
+        wins: entry.wins,
+        draws: entry.draws,
+        losses: entry.losses,
+        points: entry.points,
+        rank: leaderboard.findIndex((p) => p.playerId === profile?.$id) + 1,
+      };
+    }
+    return { wins: 0, draws: 0, losses: 0, points: 0, rank: null };
+  }, [leaderboard, profile]);
+
+  const winRate = useMemo(() => {
+    const total = myStats.wins + myStats.draws + myStats.losses;
+    if (total === 0) return 0;
+    return Math.round((myStats.wins / total) * 100);
+  }, [myStats]);
 
   const handleProfileUpdate = async () => {
     if (!displayName.trim()) {
@@ -104,21 +209,75 @@ export const ProfileScreen = () => {
     );
   }
 
+  const last5Matches = recentMatches.slice(0, 5);
+
   return (
     <Screen>
-      <View style={styles.header}>
-        <Avatar name={profile.displayName} size={80} />
-        <View style={styles.headerInfo}>
-          <Text style={styles.name}>{profile.displayName}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>
-              {profile.role === "admin" ? "Admin" : "Player"}
-            </Text>
+      {/* Header with gradient background */}
+      <LinearGradient
+        colors={[colors.accentSubtle, "transparent"]}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <Avatar name={profile.displayName} size={80} />
+          <View style={styles.headerInfo}>
+            <Text style={styles.name}>{profile.displayName}</Text>
+            <Text style={styles.email}>{user?.email}</Text>
+            <View style={styles.badgeRow}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>
+                  {profile.role === "admin" ? "Admin" : "Player"}
+                </Text>
+              </View>
+              {myStats.rank && (
+                <View style={[styles.roleBadge, styles.rankBadge]}>
+                  <Text style={styles.rankText}>#{myStats.rank}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
+      {/* Stats Card */}
+      <Card highlight glow>
+        <Text style={styles.sectionTitle}>Your Stats</Text>
+        <View style={styles.statsGrid}>
+          <StatBox value={myStats.wins} label="Wins" color={colors.success} />
+          <StatBox value={myStats.draws} label="Draws" color={colors.warning} />
+          <StatBox value={myStats.losses} label="Losses" color={colors.danger} />
+          <StatBox value={myStats.points} label="Points" color={colors.accent} />
+        </View>
+        {/* Win Rate Bar */}
+        <View style={styles.winRateContainer}>
+          <View style={styles.winRateHeader}>
+            <Text style={styles.winRateLabel}>Win Rate</Text>
+            <Text style={styles.winRateValue}>{winRate}%</Text>
+          </View>
+          <View style={styles.winRateBar}>
+            <View style={[styles.winRateFill, { width: `${winRate}%` }]} />
+          </View>
+        </View>
+      </Card>
+
+      {/* Recent Matches */}
+      <Card>
+        <Text style={styles.sectionTitle}>Recent Matches</Text>
+        {last5Matches.length > 0 ? (
+          last5Matches.map((match) => (
+            <RecentMatchItem
+              key={match.$id}
+              match={match}
+              playersById={playersById}
+              currentUserId={profile.$id}
+            />
+          ))
+        ) : (
+          <Text style={styles.noMatches}>No matches played yet</Text>
+        )}
+      </Card>
+
+      {/* Edit Profile */}
       <Card>
         <Text style={styles.sectionTitle}>Edit Profile</Text>
         <Input
@@ -134,6 +293,7 @@ export const ProfileScreen = () => {
         />
       </Card>
 
+      {/* Change Password */}
       <Card>
         <Text style={styles.sectionTitle}>Change Password</Text>
         <Input
@@ -158,6 +318,7 @@ export const ProfileScreen = () => {
         />
       </Card>
 
+      {/* Session */}
       <Card>
         <Text style={styles.sectionTitle}>Session</Text>
         <Text style={styles.sessionInfo}>
@@ -184,11 +345,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 14,
   },
+  headerGradient: {
+    marginHorizontal: -16,
+    marginTop: -16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+    marginBottom: 8,
+    borderRadius: 16,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-    paddingVertical: 8,
   },
   headerInfo: {
     marginLeft: 16,
@@ -196,7 +364,7 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.textPrimary,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
   },
   email: {
@@ -204,24 +372,126 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
+  badgeRow: {
+    flexDirection: "row",
+    marginTop: 8,
+    gap: 8,
+  },
   roleBadge: {
     backgroundColor: colors.accentSubtle,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginTop: 8,
-    alignSelf: "flex-start",
   },
   roleText: {
     color: colors.accent,
     fontSize: 12,
     fontWeight: "600",
   },
+  rankBadge: {
+    backgroundColor: colors.goldGlow,
+  },
+  rankText: {
+    color: colors.gold,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   sectionTitle: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statBox: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+  statLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  winRateContainer: {
+    marginTop: 16,
+  },
+  winRateHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  winRateLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  winRateValue: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  winRateBar: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  winRateFill: {
+    height: "100%",
+    backgroundColor: colors.accent,
+    borderRadius: 4,
+  },
+  matchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  resultBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  resultIcon: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  matchInfo: {
+    flex: 1,
+  },
+  opponentName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  matchDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  matchScore: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  matchPending: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  noMatches: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 16,
   },
   sessionInfo: {
     color: colors.textMuted,
