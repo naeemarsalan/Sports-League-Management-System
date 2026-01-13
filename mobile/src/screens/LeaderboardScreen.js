@@ -89,7 +89,7 @@ export const LeaderboardScreen = () => {
         <TableHeader />
         <FlatList
           data={data}
-          keyExtractor={(item) => item.playerId}
+          keyExtractor={(item, index) => item.playerId || `row-${index}`}
           renderItem={({ item, index }) => (
             <LeaderboardRow item={item} index={index} />
           )}
