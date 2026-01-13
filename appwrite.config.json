@@ -49,7 +49,9 @@
         {
             "$id": "profiles",
             "$permissions": [
-                "read(\"users\")"
+                "read(\"users\")",
+                "create(\"users\")",
+                "update(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "Profiles",
