@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Alert,
   FlatList,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -14,25 +15,37 @@ import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
+import { EmptyState } from "../components/EmptyState";
 import { createMatch } from "../lib/matches";
-import { listProfiles } from "../lib/profiles";
+import { getLeagueMemberProfiles } from "../lib/members";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
+import { useLeagueStore } from "../state/useLeagueStore";
 
 export const ChallengeScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
-  const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ["profiles"],
-    queryFn: listProfiles,
+  const { currentLeagueId, currentLeague } = useLeagueStore();
+
+  const { data: leagueProfiles = [], isLoading } = useQuery({
+    queryKey: ["leagueProfiles", currentLeagueId],
+    queryFn: () => getLeagueMemberProfiles(currentLeagueId),
+    enabled: !!currentLeagueId,
   });
 
   const [selectedOpponent, setSelectedOpponent] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [weekCommencing, setWeekCommencing] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Filter out current user from opponents list
-  const opponents = profiles.filter((p) => p.$id !== profile?.$id);
+  // Filter out current user and apply search filter
+  const opponents = useMemo(() => {
+    return leagueProfiles
+      .filter((p) => p.$id !== profile?.$id)
+      .filter((p) =>
+        p.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  }, [leagueProfiles, profile, searchQuery]);
 
   const handleSelectOpponent = (opponent) => {
     Haptics.selectionAsync();
@@ -51,13 +64,17 @@ export const ChallengeScreen = ({ navigation }) => {
 
     setCreating(true);
     try {
-      await createMatch({
-        player1Id: profile.$id,
-        player2Id: selectedOpponent.$id,
-        weekCommencing: new Date(weekCommencing).toISOString(),
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-        isCompleted: false,
-      });
+      await createMatch(
+        {
+          player1Id: profile.$id,
+          player2Id: selectedOpponent.$id,
+          leagueId: currentLeagueId,
+          weekCommencing: new Date(weekCommencing).toISOString(),
+          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          isCompleted: false,
+        },
+        profile.displayName // Pass challenger name for push notification
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Challenge sent!",
@@ -88,7 +105,9 @@ export const ChallengeScreen = ({ navigation }) => {
           <Text style={[styles.opponentName, isSelected && styles.textSelected]}>
             {item.displayName}
           </Text>
-          <Text style={styles.opponentRole}>{item.role}</Text>
+          <Text style={styles.opponentRole}>
+            {item.membership?.role || item.role}
+          </Text>
         </View>
         {isSelected && (
           <View style={styles.checkmark}>
@@ -99,19 +118,60 @@ export const ChallengeScreen = ({ navigation }) => {
     );
   };
 
+  // Show empty state if no league selected
+  if (!currentLeagueId) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="people"
+          title="No League Selected"
+          message="Join or create a league before challenging players."
+          actionTitle="Go to Leagues"
+          onAction={() => navigation.navigate("Leagues")}
+        />
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll={false}>
       <SectionHeader
         title="Challenge Player"
-        subtitle="Select an opponent and schedule your match"
+        subtitle={currentLeague?.name ? `In ${currentLeague.name}` : "Select an opponent and schedule your match"}
       />
 
       <Text style={styles.sectionTitle}>Select Opponent</Text>
+
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search players..."
+          placeholderTextColor={colors.textMuted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <Pressable
+            onPress={() => setSearchQuery("")}
+            style={styles.clearButton}
+          >
+            <Text style={styles.clearButtonText}>×</Text>
+          </Pressable>
+        )}
+      </View>
+
       <View style={styles.listContainer}>
         {isLoading ? (
           <Text style={styles.loadingText}>Loading players...</Text>
         ) : opponents.length === 0 ? (
-          <Text style={styles.emptyText}>No other players available</Text>
+          <Text style={styles.emptyText}>
+            {searchQuery
+              ? "No players match your search"
+              : "No other players in this league"}
+          </Text>
         ) : (
           <FlatList
             data={opponents}
@@ -152,6 +212,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 16,
+    paddingVertical: 12,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  clearButtonText: {
+    color: colors.textMuted,
+    fontSize: 20,
+    fontWeight: "600",
   },
   listContainer: {
     flex: 1,
@@ -215,6 +299,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     marginTop: 2,
+    textTransform: "capitalize",
   },
   checkmark: {
     width: 28,

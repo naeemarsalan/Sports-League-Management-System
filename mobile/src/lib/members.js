@@ -1,5 +1,6 @@
 import { databases, ID, Query, appwriteConfig } from "./appwrite";
 import { updateMemberCount } from "./leagues";
+import { listProfiles } from "./profiles";
 
 // Role hierarchy (higher number = more permissions)
 export const ROLES = {
@@ -94,6 +95,33 @@ export const getLeagueMembers = async (leagueId, status = null) => {
     queries
   );
   return response.documents;
+};
+
+/**
+ * Get profiles of all approved members in a league
+ * Returns profiles with their membership info attached
+ */
+export const getLeagueMemberProfiles = async (leagueId) => {
+  // Get approved league members
+  const members = await getLeagueMembers(leagueId, "approved");
+
+  if (members.length === 0) {
+    return [];
+  }
+
+  // Get all profiles
+  const profiles = await listProfiles();
+
+  // Create a map of userId -> membership for quick lookup
+  const membershipMap = new Map(members.map((m) => [m.userId, m]));
+
+  // Filter profiles to only include league members and attach membership info
+  return profiles
+    .filter((profile) => membershipMap.has(profile.userId))
+    .map((profile) => ({
+      ...profile,
+      membership: membershipMap.get(profile.userId),
+    }));
 };
 
 /**

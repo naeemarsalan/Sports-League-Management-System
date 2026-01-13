@@ -1,4 +1,20 @@
-import { databases, ID, Query, appwriteConfig } from "./appwrite";
+import { databases, functions, ID, Query, appwriteConfig } from "./appwrite";
+
+/**
+ * Send a push notification (fire-and-forget, doesn't throw on failure)
+ */
+const sendPushNotification = async (type, userId, data) => {
+  try {
+    await functions.createExecution(
+      "send-push",
+      JSON.stringify({ type, userId, data }),
+      false // async execution
+    );
+  } catch (error) {
+    // Log but don't throw - notifications are non-critical
+    console.warn("Failed to send push notification:", error.message);
+  }
+};
 
 export const listMatches = async ({ leagueId, status, playerId, weekCommencing } = {}) => {
   const queries = [];
@@ -32,7 +48,7 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
       documents = response.documents;
     } catch (error) {
       // Fallback: fetch all and filter client-side (for legacy matches without leagueId)
-      console.log("Falling back to client-side league filtering:", error.message);
+      console.warn("Falling back to client-side league filtering:", error.message);
       const response = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.matchesCollectionId,
@@ -52,27 +68,63 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
   return documents;
 };
 
-export const createMatch = async (payload) => {
+/**
+ * Create a new match and notify the opponent
+ * @param {Object} payload - Match data
+ * @param {string} challengerName - Display name of the challenger (for notification)
+ */
+export const createMatch = async (payload, challengerName = null) => {
   // Ensure leagueId is provided
   if (!payload.leagueId) {
     throw new Error("leagueId is required when creating a match");
   }
 
-  return databases.createDocument(
+  const match = await databases.createDocument(
     appwriteConfig.databaseId,
     appwriteConfig.matchesCollectionId,
     ID.unique(),
     payload
   );
+
+  // Send push notification to opponent (player2)
+  if (payload.player2Id) {
+    sendPushNotification("challenge_received", payload.player2Id, {
+      matchId: match.$id,
+      challengerName,
+    });
+  }
+
+  return match;
 };
 
-export const updateMatch = async (matchId, payload) => {
-  return databases.updateDocument(
+/**
+ * Update match and optionally send notifications
+ * @param {string} matchId - The match ID to update
+ * @param {Object} payload - Update data
+ * @param {Object} notifyOptions - Notification options
+ * @param {string[]} notifyOptions.playerIds - Player IDs to notify
+ * @param {string} notifyOptions.type - Notification type (match_scheduled, score_submitted)
+ * @param {Object} notifyOptions.data - Additional notification data
+ */
+export const updateMatch = async (matchId, payload, notifyOptions = null) => {
+  const updated = await databases.updateDocument(
     appwriteConfig.databaseId,
     appwriteConfig.matchesCollectionId,
     matchId,
     payload
   );
+
+  // Send notifications if requested
+  if (notifyOptions?.playerIds?.length > 0 && notifyOptions.type) {
+    for (const playerId of notifyOptions.playerIds) {
+      sendPushNotification(notifyOptions.type, playerId, {
+        matchId,
+        ...notifyOptions.data,
+      });
+    }
+  }
+
+  return updated;
 };
 
 export const getMatch = async (matchId) => {

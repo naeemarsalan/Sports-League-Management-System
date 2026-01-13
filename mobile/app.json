@@ -12,15 +12,29 @@
       "resizeMode": "contain",
       "backgroundColor": "#0b0f0c"
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#2ECC71"
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "io.snookerpoolleague.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b0f0c"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "io.snookerpoolleague.app",
+      "useNextNotificationsApi": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +47,10 @@
       "appwriteMatchesCollectionId": "matches",
       "appwriteLeaguesCollectionId": "leagues",
       "appwriteLeagueMembersCollectionId": "league_members",
-      "appwriteLeaderboardFunctionId": "leaderboard"
+      "appwriteLeaderboardFunctionId": "leaderboard",
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
     }
   }
 }
