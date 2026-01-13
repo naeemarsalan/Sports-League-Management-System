@@ -8,26 +8,51 @@ import { getLeagueMembers } from "./members";
  */
 export const fetchLeaderboard = async (leagueId = null) => {
   try {
-    // Build queries for matches
+    // Build queries for matches - only filter by leagueId if provided and valid
     const matchQueries = [Query.equal("isCompleted", true), Query.limit(500)];
-    if (leagueId) {
-      matchQueries.push(Query.equal("leagueId", leagueId));
-    }
 
-    // Fetch profiles, completed matches, and league members
-    const [profilesRes, matchesRes, members] = await Promise.all([
-      databases.listDocuments(
-        appwriteConfig.databaseId,
-        appwriteConfig.profilesCollectionId,
-        [Query.limit(500)]
-      ),
-      databases.listDocuments(
+    // Fetch profiles first
+    const profilesRes = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.profilesCollectionId,
+      [Query.limit(500)]
+    );
+
+    // Fetch matches - try with leagueId filter, fall back to all matches if it fails
+    let matchesRes;
+    let members = [];
+
+    if (leagueId) {
+      try {
+        // Try fetching with leagueId filter
+        matchesRes = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.matchesCollectionId,
+          [...matchQueries, Query.equal("leagueId", leagueId)]
+        );
+        members = await getLeagueMembers(leagueId, "approved");
+      } catch (queryError) {
+        // If leagueId query fails (e.g., old matches without leagueId), fetch all and filter
+        console.log("Falling back to fetching all matches:", queryError.message);
+        matchesRes = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          appwriteConfig.matchesCollectionId,
+          matchQueries
+        );
+        // Filter matches by leagueId client-side
+        matchesRes.documents = matchesRes.documents.filter(
+          (m) => m.leagueId === leagueId || !m.leagueId
+        );
+        members = await getLeagueMembers(leagueId, "approved");
+      }
+    } else {
+      // No league filter - fetch all matches
+      matchesRes = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.matchesCollectionId,
         matchQueries
-      ),
-      leagueId ? getLeagueMembers(leagueId, "approved") : Promise.resolve([]),
-    ]);
+      );
+    }
 
     const profiles = profilesRes.documents;
     const matches = matchesRes.documents;

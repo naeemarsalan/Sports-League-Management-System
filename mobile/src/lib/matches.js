@@ -3,11 +3,6 @@ import { databases, ID, Query, appwriteConfig } from "./appwrite";
 export const listMatches = async ({ leagueId, status, playerId, weekCommencing } = {}) => {
   const queries = [];
 
-  // Filter by league (required for multi-league)
-  if (leagueId) {
-    queries.push(Query.equal("leagueId", leagueId));
-  }
-
   if (status === "completed") {
     queries.push(Query.equal("isCompleted", true));
   }
@@ -24,12 +19,37 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
   queries.push(Query.limit(500));
   queries.push(Query.orderDesc("weekCommencing"));
 
-  const response = await databases.listDocuments(
-    appwriteConfig.databaseId,
-    appwriteConfig.matchesCollectionId,
-    queries
-  );
-  return response.documents;
+  let documents;
+
+  // Try to filter by leagueId if provided
+  if (leagueId) {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.matchesCollectionId,
+        [...queries, Query.equal("leagueId", leagueId)]
+      );
+      documents = response.documents;
+    } catch (error) {
+      // Fallback: fetch all and filter client-side (for legacy matches without leagueId)
+      console.log("Falling back to client-side league filtering:", error.message);
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.matchesCollectionId,
+        queries
+      );
+      documents = response.documents.filter((m) => m.leagueId === leagueId || !m.leagueId);
+    }
+  } else {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.matchesCollectionId,
+      queries
+    );
+    documents = response.documents;
+  }
+
+  return documents;
 };
 
 export const createMatch = async (payload) => {
