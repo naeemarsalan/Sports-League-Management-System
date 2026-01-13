@@ -19,7 +19,10 @@ export const useAuthStore = create((set, get) => ({
       const profile = await getProfileByUserId(user.$id);
       set({ user, profile, loading: false });
     } catch (error) {
-      console.error('Bootstrap error:', error);
+      // Error code 401 means user is not authenticated (guest) - this is expected
+      if (error.code !== 401) {
+        console.error('Bootstrap error:', error);
+      }
       set({ user: null, profile: null, loading: false });
     }
   },
