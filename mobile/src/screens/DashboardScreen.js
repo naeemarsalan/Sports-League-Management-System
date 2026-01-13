@@ -1,46 +1,18 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
 import { Avatar } from "../components/Avatar";
+import { LeagueCard } from "../components/LeagueCard";
+import { RoleBadge } from "../components/RoleBadge";
 import { fetchLeaderboard } from "../lib/leaderboard";
 import { listMatches } from "../lib/matches";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
-
-const LeagueCard = ({ title, week, progress, onPress }) => (
-  <Pressable
-    onPress={() => {
-      Haptics.selectionAsync();
-      onPress?.();
-    }}
-    style={styles.leagueCardWrapper}
-  >
-    <LinearGradient
-      colors={colors.gradientGreen}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.leagueCard}
-    >
-      <View style={styles.leagueCardContent}>
-        <Text style={styles.leagueTitle}>{title}</Text>
-        <Text style={styles.leagueWeek}>Week {week}</Text>
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-          <Text style={styles.progressText}>{progress}%</Text>
-        </View>
-      </View>
-      <View style={styles.leagueIconContainer}>
-        <Ionicons name="ellipse" size={48} color="rgba(255,255,255,0.3)" />
-      </View>
-    </LinearGradient>
-  </Pressable>
-);
+import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
 
 const ActionButton = ({ icon, label, onPress }) => (
   <Pressable
@@ -59,44 +31,62 @@ const ActionButton = ({ icon, label, onPress }) => (
 );
 
 export const DashboardScreen = ({ navigation }) => {
-  const { profile } = useAuthStore();
+  const { user, profile } = useAuthStore();
+  const {
+    currentLeague,
+    currentLeagueId,
+    currentMembership,
+    userLeagues,
+    userMemberships,
+    fetchUserLeagues,
+    setCurrentLeague,
+    canPerform,
+  } = useLeagueStore();
 
-  // Fetch leaderboard for user stats
+  // Fetch user's leagues on mount
+  useEffect(() => {
+    if (user) {
+      fetchUserLeagues(user.$id);
+    }
+  }, [user]);
+
+  // Fetch leaderboard for current league
   const { data: leaderboard = [] } = useQuery({
-    queryKey: ["leaderboard"],
-    queryFn: fetchLeaderboard,
-    enabled: !!profile,
+    queryKey: ["leaderboard", currentLeagueId],
+    queryFn: () => fetchLeaderboard(currentLeagueId),
+    enabled: !!profile && !!currentLeagueId,
   });
 
-  // Fetch upcoming matches for user
+  // Fetch upcoming matches for user in current league
   const { data: matches = [] } = useQuery({
-    queryKey: ["matches", "upcoming", profile?.$id],
-    queryFn: () => listMatches({ status: "upcoming", playerId: profile?.$id }),
-    enabled: !!profile,
+    queryKey: ["matches", "upcoming", profile?.$id, currentLeagueId],
+    queryFn: () =>
+      listMatches({
+        leagueId: currentLeagueId,
+        status: "upcoming",
+        playerId: profile?.$id,
+      }),
+    enabled: !!profile && !!currentLeagueId,
   });
 
   // Calculate user's stats
   const myStats = useMemo(() => {
-    const entry = leaderboard.find((p) => p.playerId === profile?.$id);
+    const entry = leaderboard.find(
+      (p) => p.playerId === profile?.$id || p.userId === user?.$id
+    );
     const totalMatches = matches.length;
     const completedMatches = matches.filter((m) => m.isCompleted).length;
-    const progress = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+    const progress =
+      totalMatches > 0
+        ? Math.round((completedMatches / totalMatches) * 100)
+        : 0;
     return {
       wins: entry?.wins ?? 0,
       points: entry?.points ?? 0,
       upcomingMatches: matches.filter((m) => !m.isCompleted).length,
       progress,
     };
-  }, [leaderboard, matches, profile]);
-
-  // Get current week number
-  const currentWeek = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 1);
-    const diff = now.getTime() - start.getTime();
-    const oneWeek = 1000 * 60 * 60 * 24 * 7;
-    return Math.ceil(diff / oneWeek);
-  }, []);
+  }, [leaderboard, matches, profile, user]);
 
   // Animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -117,6 +107,13 @@ export const DashboardScreen = ({ navigation }) => {
     ]).start();
   }, []);
 
+  const canManageMembers = canPerform(ACTIONS.APPROVE_MEMBERS);
+  const canCreateMatch = canPerform(ACTIONS.CREATE_MATCH);
+
+  const getMembershipForLeague = (leagueId) => {
+    return userMemberships.find((m) => m.leagueId === leagueId);
+  };
+
   return (
     <Screen>
       {/* Welcome Header */}
@@ -131,87 +128,201 @@ export const DashboardScreen = ({ navigation }) => {
       >
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.welcomeName}>{profile?.displayName ?? "Player"}</Text>
+          <Text style={styles.welcomeName}>
+            {profile?.displayName ?? "Player"}
+          </Text>
         </View>
         <Pressable onPress={() => navigation.navigate("Profile")}>
           <Avatar name={profile?.displayName} size={48} />
         </Pressable>
       </Animated.View>
 
-      {/* Your Leagues Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>YOUR LEAGUES</Text>
-        <LeagueCard
-          title="Snooker Pool League"
-          week={currentWeek}
-          progress={myStats.progress || 25}
-          onPress={() => navigation.navigate("Leaderboard")}
-        />
-      </View>
-
-      {/* Quick Actions Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
-        <View style={styles.actionsContainer}>
-          <ActionButton
-            icon="flash-outline"
-            label="Challenge Player"
-            onPress={() => navigation.navigate("Challenge")}
-          />
-          <ActionButton
-            icon="calendar-outline"
-            label="View Matches"
-            onPress={() => navigation.navigate("Matches")}
-          />
-          <ActionButton
-            icon="trophy-outline"
-            label="Standings"
-            onPress={() => navigation.navigate("Leaderboard")}
-          />
-        </View>
-      </View>
-
-      {/* Admin Controls */}
-      {profile?.role === "admin" && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ADMIN</Text>
-          <View style={styles.actionsContainer}>
-            <ActionButton
-              icon="people-outline"
-              label="Manage Players"
-              onPress={() => navigation.navigate("ManagePlayers")}
-            />
-            <ActionButton
-              icon="add-circle-outline"
-              label="Create Match"
-              onPress={() => navigation.navigate("NewMatch")}
-            />
+      {/* No Leagues State */}
+      {userLeagues.length === 0 && (
+        <View style={styles.noLeaguesContainer}>
+          <Ionicons name="people-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.noLeaguesTitle}>No leagues yet</Text>
+          <Text style={styles.noLeaguesText}>
+            Create your own league or join an existing one to get started.
+          </Text>
+          <View style={styles.noLeaguesActions}>
+            <Pressable
+              style={styles.createLeagueBtn}
+              onPress={() => navigation.navigate("CreateLeague")}
+            >
+              <Ionicons name="add" size={20} color={colors.textInverse} />
+              <Text style={styles.createLeagueBtnText}>Create League</Text>
+            </Pressable>
+            <Pressable
+              style={styles.joinLeagueBtn}
+              onPress={() => navigation.navigate("JoinLeague")}
+            >
+              <Ionicons name="key-outline" size={20} color={colors.accent} />
+              <Text style={styles.joinLeagueBtnText}>Join League</Text>
+            </Pressable>
           </View>
         </View>
       )}
 
-      {/* Upcoming Matches */}
-      {myStats.upcomingMatches > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>UPCOMING</Text>
-          <View style={styles.upcomingCard}>
-            <View style={styles.upcomingInfo}>
-              <Ionicons name="time-outline" size={20} color={colors.accent} />
-              <Text style={styles.upcomingText}>
-                {myStats.upcomingMatches} match{myStats.upcomingMatches > 1 ? "es" : ""} scheduled
-              </Text>
+      {/* Your Leagues Section */}
+      {userLeagues.length > 0 && (
+        <>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>YOUR LEAGUES</Text>
+              <Pressable onPress={() => navigation.navigate("Leagues")}>
+                <Text style={styles.seeAll}>See all</Text>
+              </Pressable>
             </View>
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                navigation.navigate("Matches");
-              }}
-              style={styles.upcomingButton}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.leaguesScroll}
             >
-              <Text style={styles.upcomingButtonText}>View</Text>
-            </Pressable>
+              {userLeagues.slice(0, 3).map((league) => (
+                <Pressable
+                  key={league.$id}
+                  style={[
+                    styles.leagueCardWrapper,
+                    currentLeagueId === league.$id && styles.leagueCardSelected,
+                  ]}
+                  onPress={async () => {
+                    Haptics.selectionAsync();
+                    await setCurrentLeague(league.$id);
+                  }}
+                >
+                  <LinearGradient
+                    colors={colors.gradientGreen}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.leagueCardGradient}
+                  >
+                    <View style={styles.leagueCardHeader}>
+                      <Ionicons
+                        name="ellipse"
+                        size={24}
+                        color="rgba(255,255,255,0.4)"
+                      />
+                      {currentLeagueId === league.$id && (
+                        <View style={styles.activeIndicator}>
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            color={colors.accent}
+                          />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.leagueCardTitle} numberOfLines={1}>
+                      {league.name}
+                    </Text>
+                    <View style={styles.leagueCardFooter}>
+                      <Text style={styles.leagueCardMembers}>
+                        {league.memberCount || 0} members
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </Pressable>
+              ))}
+              {/* Add league button */}
+              <Pressable
+                style={styles.addLeagueCard}
+                onPress={() => navigation.navigate("Leagues")}
+              >
+                <Ionicons name="add" size={32} color={colors.textMuted} />
+                <Text style={styles.addLeagueText}>Browse</Text>
+              </Pressable>
+            </ScrollView>
           </View>
-        </View>
+
+          {/* Current League Info */}
+          {currentLeague && (
+            <View style={styles.currentLeagueInfo}>
+              <Text style={styles.currentLeagueLabel}>Current:</Text>
+              <Text style={styles.currentLeagueName} numberOfLines={1}>
+                {currentLeague.name}
+              </Text>
+              {currentMembership && (
+                <RoleBadge role={currentMembership.role} size="small" />
+              )}
+            </View>
+          )}
+
+          {/* Quick Actions Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
+            <View style={styles.actionsContainer}>
+              <ActionButton
+                icon="flash-outline"
+                label="Challenge Player"
+                onPress={() => navigation.navigate("Challenge")}
+              />
+              <ActionButton
+                icon="calendar-outline"
+                label="View Matches"
+                onPress={() => navigation.navigate("Matches")}
+              />
+              <ActionButton
+                icon="trophy-outline"
+                label="Standings"
+                onPress={() => navigation.navigate("Leaderboard")}
+              />
+            </View>
+          </View>
+
+          {/* Admin Controls */}
+          {(canManageMembers || canCreateMatch) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>LEAGUE MANAGEMENT</Text>
+              <View style={styles.actionsContainer}>
+                {canManageMembers && (
+                  <ActionButton
+                    icon="people-outline"
+                    label="Manage Members"
+                    onPress={() => navigation.navigate("LeagueMembers")}
+                  />
+                )}
+                {canCreateMatch && (
+                  <ActionButton
+                    icon="add-circle-outline"
+                    label="Create Match"
+                    onPress={() => navigation.navigate("NewMatch")}
+                  />
+                )}
+                <ActionButton
+                  icon="settings-outline"
+                  label="League Settings"
+                  onPress={() => navigation.navigate("LeagueSettings")}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Upcoming Matches */}
+          {myStats.upcomingMatches > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>UPCOMING</Text>
+              <View style={styles.upcomingCard}>
+                <View style={styles.upcomingInfo}>
+                  <Ionicons name="time-outline" size={20} color={colors.accent} />
+                  <Text style={styles.upcomingText}>
+                    {myStats.upcomingMatches} match
+                    {myStats.upcomingMatches > 1 ? "es" : ""} scheduled
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    navigation.navigate("Matches");
+                  }}
+                  style={styles.upcomingButton}
+                >
+                  <Text style={styles.upcomingButtonText}>View</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </>
       )}
     </Screen>
   );
@@ -237,6 +348,12 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   sectionTitle: {
     color: colors.textMuted,
     fontSize: 12,
@@ -244,55 +361,88 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   },
+  seeAll: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  leaguesScroll: {
+    paddingRight: 20,
+  },
   leagueCardWrapper: {
+    width: 160,
+    marginRight: 12,
     borderRadius: 16,
     overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  leagueCard: {
+  leagueCardSelected: {
+    borderColor: colors.accent,
+  },
+  leagueCardGradient: {
+    padding: 16,
+    height: 120,
+    justifyContent: "space-between",
+  },
+  leagueCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    minHeight: 120,
   },
-  leagueCardContent: {
-    flex: 1,
+  activeIndicator: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 2,
   },
-  leagueTitle: {
+  leagueCardTitle: {
     color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: "600",
   },
-  leagueWeek: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  progressContainer: {
+  leagueCardFooter: {
     flexDirection: "row",
     alignItems: "center",
   },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 3,
-    marginRight: 10,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.textPrimary,
-    borderRadius: 3,
-  },
-  progressText: {
-    color: colors.textPrimary,
+  leagueCardMembers: {
+    color: "rgba(255,255,255,0.7)",
     fontSize: 12,
-    fontWeight: "600",
   },
-  leagueIconContainer: {
-    marginLeft: 16,
-    opacity: 0.8,
+  addLeagueCard: {
+    width: 100,
+    height: 120,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addLeagueText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  currentLeagueInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  currentLeagueLabel: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginRight: 8,
+  },
+  currentLeagueName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+    marginRight: 8,
   },
   actionsContainer: {
     backgroundColor: colors.surface,
@@ -348,5 +498,58 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 14,
     fontWeight: "600",
+  },
+  // No leagues state
+  noLeaguesContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  noLeaguesTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noLeaguesText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+    maxWidth: 280,
+    marginBottom: 24,
+  },
+  noLeaguesActions: {
+    flexDirection: "row",
+  },
+  createLeagueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  createLeagueBtnText: {
+    color: colors.textInverse,
+    fontSize: 15,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  joinLeagueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.accentSubtle,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  joinLeagueBtnText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });

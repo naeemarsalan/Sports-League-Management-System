@@ -31,6 +31,8 @@
       "appwriteDatabaseId": "pool-league",
       "appwriteProfilesCollectionId": "profiles",
       "appwriteMatchesCollectionId": "matches",
+      "appwriteLeaguesCollectionId": "leagues",
+      "appwriteLeagueMembersCollectionId": "league_members",
       "appwriteLeaderboardFunctionId": "leaderboard"
     }
   }

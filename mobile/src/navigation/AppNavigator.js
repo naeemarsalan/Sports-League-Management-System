@@ -6,6 +6,7 @@ import { createStackNavigator, TransitionPresets } from "@react-navigation/stack
 import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../state/useAuthStore";
+import { useLeagueStore } from "../state/useLeagueStore";
 import { DashboardScreen } from "../screens/DashboardScreen";
 import { MatchesScreen } from "../screens/MatchesScreen";
 import { LeaderboardScreen } from "../screens/LeaderboardScreen";
@@ -13,10 +14,14 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { RegisterScreen } from "../screens/auth/RegisterScreen";
 import { MatchDetailScreen } from "../screens/MatchDetailScreen";
-import { ManagePlayersScreen } from "../screens/admin/ManagePlayersScreen";
-import { NewMatchScreen } from "../screens/admin/NewMatchScreen";
 import { ChallengeScreen } from "../screens/ChallengeScreen";
 import { ProfileSetupScreen } from "../screens/ProfileSetupScreen";
+// League screens
+import { LeaguesScreen } from "../screens/LeaguesScreen";
+import { CreateLeagueScreen } from "../screens/CreateLeagueScreen";
+import { JoinLeagueScreen } from "../screens/JoinLeagueScreen";
+import { LeagueMembersScreen } from "../screens/LeagueMembersScreen";
+import { LeagueSettingsScreen } from "../screens/LeagueSettingsScreen";
 import { colors } from "../theme/colors";
 
 const Stack = Platform.OS === "web" ? createStackNavigator() : createNativeStackNavigator();
@@ -98,10 +103,18 @@ const Tabs = () => (
 
 export const AppNavigator = () => {
   const { user, profile, bootstrap } = useAuthStore();
+  const { reset: resetLeagueStore } = useLeagueStore();
 
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
+
+  // Reset league store on logout
+  useEffect(() => {
+    if (!user) {
+      resetLeagueStore();
+    }
+  }, [user, resetLeagueStore]);
 
   const options = Platform.OS === "web" ? webScreenOptions : screenOptions;
 
@@ -122,7 +135,7 @@ export const AppNavigator = () => {
         ) : (
           <Stack.Navigator screenOptions={options}>
             <Stack.Screen
-              name="Home"
+              name="Main"
               component={Tabs}
               options={{ headerShown: false }}
             />
@@ -136,15 +149,31 @@ export const AppNavigator = () => {
               component={ChallengeScreen}
               options={{ title: "Challenge Player" }}
             />
+            {/* League Management Screens */}
             <Stack.Screen
-              name="ManagePlayers"
-              component={ManagePlayersScreen}
-              options={{ title: "Manage Players" }}
+              name="Leagues"
+              component={LeaguesScreen}
+              options={{ title: "Leagues" }}
             />
             <Stack.Screen
-              name="NewMatch"
-              component={NewMatchScreen}
-              options={{ title: "Create Match" }}
+              name="CreateLeague"
+              component={CreateLeagueScreen}
+              options={{ title: "Create League" }}
+            />
+            <Stack.Screen
+              name="JoinLeague"
+              component={JoinLeagueScreen}
+              options={{ title: "Join League" }}
+            />
+            <Stack.Screen
+              name="LeagueMembers"
+              component={LeagueMembersScreen}
+              options={{ title: "Members" }}
+            />
+            <Stack.Screen
+              name="LeagueSettings"
+              component={LeagueSettingsScreen}
+              options={{ title: "League Settings" }}
             />
           </Stack.Navigator>
         )

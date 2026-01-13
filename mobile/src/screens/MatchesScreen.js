@@ -17,6 +17,7 @@ import { listMatches } from "../lib/matches";
 import { listProfiles } from "../lib/profiles";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
+import { useLeagueStore } from "../state/useLeagueStore";
 
 const PillTab = ({ label, active, onPress }) => (
   <Pressable
@@ -75,6 +76,7 @@ const MatchRow = ({ match, playersById, onPress }) => {
 
 export const MatchesScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
+  const { currentLeagueId, currentLeague } = useLeagueStore();
   const [tab, setTab] = useState("upcoming");
 
   const { data: profiles = [] } = useQuery({
@@ -90,8 +92,9 @@ export const MatchesScreen = ({ navigation }) => {
     isFetching,
     isLoading,
   } = useQuery({
-    queryKey: ["matches", statusFilter],
-    queryFn: () => listMatches({ status: statusFilter }),
+    queryKey: ["matches", statusFilter, currentLeagueId],
+    queryFn: () => listMatches({ leagueId: currentLeagueId, status: statusFilter }),
+    enabled: !!currentLeagueId,
   });
 
   const playersById = useMemo(() => {

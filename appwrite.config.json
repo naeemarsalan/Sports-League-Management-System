@@ -145,6 +145,15 @@
                     "encrypt": false
                 },
                 {
+                    "key": "leagueId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
                     "key": "weekCommencing",
                     "type": "datetime",
                     "required": true,
@@ -220,6 +229,214 @@
                     "status": "available",
                     "columns": [
                         "isCompleted"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "matches_league",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "leagueId"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "leagues",
+            "$permissions": [
+                "read(\"users\")",
+                "create(\"users\")",
+                "update(\"users\")"
+            ],
+            "databaseId": "pool-league",
+            "name": "Leagues",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "inviteCode",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 10,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "isActive",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "memberCount",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 9223372036854775807,
+                    "default": 0
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "leagues_invite_code",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "inviteCode"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "leagues_created_by",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "createdBy"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "league_members",
+            "$permissions": [
+                "read(\"users\")",
+                "create(\"users\")",
+                "update(\"users\")"
+            ],
+            "databaseId": "pool-league",
+            "name": "League Members",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "leagueId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "joinedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "requestedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "members_league_user",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "leagueId",
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "members_league",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "leagueId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "members_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "members_status",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
                     ],
                     "orders": []
                 }
