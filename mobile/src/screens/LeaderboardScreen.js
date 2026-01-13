@@ -1,110 +1,60 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
-import { SectionHeader } from "../components/SectionHeader";
-import { Avatar } from "../components/Avatar";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { fetchLeaderboard } from "../lib/leaderboard";
 import { colors } from "../theme/colors";
 
-const getRankStyle = (rank) => {
-  if (rank === 1) return { bg: colors.goldGlow, border: colors.gold, text: colors.gold, trophy: "🥇" };
-  if (rank === 2) return { bg: colors.silverGlow, border: colors.silver, text: colors.silver, trophy: "🥈" };
-  if (rank === 3) return { bg: colors.bronzeGlow, border: colors.bronze, text: colors.bronze, trophy: "🥉" };
-  return { bg: colors.surface, border: colors.border, text: colors.textSecondary, trophy: null };
-};
+const TableHeader = () => (
+  <View style={styles.tableHeader}>
+    <Text style={[styles.headerCell, styles.rankCol]}>RANK</Text>
+    <Text style={[styles.headerCell, styles.playerCol]}>PLAYER</Text>
+    <Text style={[styles.headerCell, styles.statCol]}>W</Text>
+    <Text style={[styles.headerCell, styles.statCol]}>L</Text>
+    <Text style={[styles.headerCell, styles.ptsCol]}>PTS</Text>
+  </View>
+);
 
-const LeaderboardRow = ({ item, index, maxPoints }) => {
+const LeaderboardRow = ({ item, index }) => {
   const rank = index + 1;
-  const rankStyle = getRankStyle(rank);
-  const isTopThree = rank <= 3;
-  const progressWidth = maxPoints > 0 ? (item.points / maxPoints) * 100 : 0;
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        delay: index * 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        delay: index * 80,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  const isFirst = rank === 1;
 
   return (
-    <Animated.View
-      style={[
-        styles.rowWrapper,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
-    >
-      <LinearGradient
-        colors={isTopThree ? [rankStyle.bg, colors.surface] : [colors.surface, colors.surface]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[
-          styles.row,
-          isTopThree && { borderColor: rankStyle.border, borderWidth: 1.5 },
-          isTopThree && styles.topThreeRow,
-        ]}
-      >
-        {/* Trophy or Rank Badge */}
-        {rankStyle.trophy ? (
-          <View style={styles.trophyContainer}>
-            <Text style={styles.trophy}>{rankStyle.trophy}</Text>
-          </View>
+    <View style={[styles.tableRow, isFirst && styles.firstRow]}>
+      {/* Rank */}
+      <View style={[styles.cell, styles.rankCol]}>
+        {isFirst ? (
+          <Ionicons name="trophy" size={18} color={colors.gold} />
         ) : (
-          <View style={[styles.rankBadge, { backgroundColor: rankStyle.bg }]}>
-            <Text style={[styles.rank, { color: rankStyle.text }]}>{rank}</Text>
-          </View>
+          <Text style={styles.rankText}>{rank}</Text>
         )}
+      </View>
 
-        <Avatar name={item.name} size={isTopThree ? 48 : 40} rank={rank} />
+      {/* Player Name */}
+      <View style={[styles.cell, styles.playerCol]}>
+        <Text style={[styles.playerName, isFirst && styles.firstPlayerName]} numberOfLines={1}>
+          {item.name}
+        </Text>
+      </View>
 
-        <View style={styles.nameWrap}>
-          <Text style={[styles.name, isTopThree && { color: rankStyle.text, fontSize: 17 }]}>
-            {item.name}
-          </Text>
-          <Text style={styles.meta}>
-            {item.wins}W · {item.draws}D · {item.losses}L
-          </Text>
-          {/* Progress bar */}
-          <View style={styles.progressContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  width: `${progressWidth}%`,
-                  backgroundColor: isTopThree ? rankStyle.border : colors.accent,
-                },
-              ]}
-            />
-          </View>
-        </View>
+      {/* Wins */}
+      <View style={[styles.cell, styles.statCol]}>
+        <Text style={styles.statText}>{item.wins}</Text>
+      </View>
 
-        <View style={styles.pointsWrap}>
-          <Text style={[styles.points, isTopThree && { color: rankStyle.text, fontSize: 24 }]}>
-            {item.points}
-          </Text>
-          <Text style={styles.pointsLabel}>pts</Text>
-        </View>
-      </LinearGradient>
-    </Animated.View>
+      {/* Losses */}
+      <View style={[styles.cell, styles.statCol]}>
+        <Text style={styles.statText}>{item.losses}</Text>
+      </View>
+
+      {/* Points */}
+      <View style={[styles.cell, styles.ptsCol]}>
+        <Text style={[styles.ptsText, isFirst && styles.firstPts]}>{item.points}</Text>
+      </View>
+    </View>
   );
 };
 
@@ -114,12 +64,10 @@ export const LeaderboardScreen = () => {
     queryFn: fetchLeaderboard,
   });
 
-  const maxPoints = data.length > 0 ? data[0].points : 0;
-
   if (isLoading) {
     return (
       <Screen scroll={false}>
-        <SectionHeader title="Leaderboard" subtitle="Live standings across the league." />
+        <Text style={styles.screenTitle}>STANDINGS</Text>
         <View style={styles.loadingContainer}>
           <LoadingSpinner size={48} />
         </View>
@@ -129,160 +77,130 @@ export const LeaderboardScreen = () => {
 
   return (
     <Screen scroll={false} style={{ paddingBottom: 0 }}>
-      <SectionHeader title="Leaderboard" subtitle="Live standings across the league." />
-      {data.length > 0 && (
-        <View style={styles.statsRow}>
-          <View style={styles.statBadge}>
-            <Text style={styles.statValue}>{data.length}</Text>
-            <Text style={styles.statLabel}>Players</Text>
-          </View>
-          <View style={styles.statBadge}>
-            <Text style={styles.statValue}>{maxPoints}</Text>
-            <Text style={styles.statLabel}>Top Score</Text>
-          </View>
-          <View style={styles.statBadge}>
-            <Text style={styles.statValue}>
-              {data.reduce((sum, p) => sum + p.wins + p.draws + p.losses, 0)}
-            </Text>
-            <Text style={styles.statLabel}>Matches</Text>
-          </View>
-        </View>
-      )}
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.playerId}
-        renderItem={({ item, index }) => (
-          <LeaderboardRow item={item} index={index} maxPoints={maxPoints} />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching}
-            onRefresh={refetch}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="leaderboard"
-            title="No standings yet"
-            message="Complete some matches to see the leaderboard."
-          />
-        }
-      />
+      <Text style={styles.screenTitle}>STANDINGS</Text>
+
+      <View style={styles.tableContainer}>
+        <TableHeader />
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.playerId}
+          renderItem={({ item, index }) => (
+            <LeaderboardRow item={item} index={index} />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={refetch}
+              tintColor={colors.accent}
+              colors={[colors.accent]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="leaderboard"
+              title="No standings yet"
+              message="Complete some matches to see the leaderboard."
+            />
+          }
+        />
+      </View>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
+  screenTitle: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 20,
+    letterSpacing: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  statsRow: {
+  tableContainer: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  tableHeader: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: 12,
-  },
-  statBadge: {
     alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
   },
-  statValue: {
-    color: colors.accent,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  statLabel: {
+  headerCell: {
     color: colors.textMuted,
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  tableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  firstRow: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  cell: {
+    justifyContent: "center",
+  },
+  rankCol: {
+    width: 50,
+  },
+  playerCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  statCol: {
+    width: 40,
+    alignItems: "center",
+  },
+  ptsCol: {
+    width: 50,
+    alignItems: "flex-end",
+  },
+  rankText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  playerName: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  firstPlayerName: {
+    color: colors.gold,
+    fontWeight: "600",
+  },
+  statText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  ptsText: {
+    color: colors.accent,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  firstPts: {
+    color: colors.gold,
   },
   listContent: {
     paddingBottom: 20,
-  },
-  rowWrapper: {
-    marginBottom: 10,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-  },
-  topThreeRow: {
-    paddingVertical: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  trophyContainer: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  trophy: {
-    fontSize: 28,
-  },
-  rankBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  rank: {
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  nameWrap: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  name: {
-    color: colors.textPrimary,
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  meta: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  progressContainer: {
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    marginTop: 8,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  pointsWrap: {
-    alignItems: "flex-end",
-  },
-  points: {
-    color: colors.accent,
-    fontWeight: "800",
-    fontSize: 20,
-  },
-  pointsLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: -2,
   },
 });

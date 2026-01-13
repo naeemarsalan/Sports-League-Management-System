@@ -1,28 +1,32 @@
 export const colors = {
-  // Backgrounds - deep black-green
-  background: "#070a08",
-  surface: "#0d1210",
-  surfaceAlt: "#141c17",
-  card: "#101614",
-  cardHighlight: "#162016",
+  // Backgrounds - dark navy
+  background: "#141922",
+  surface: "#1e2433",
+  surfaceAlt: "#252d3d",
+  card: "#1e2433",
+  cardHighlight: "#2a3347",
 
   // Borders
-  border: "#1e2d24",
-  borderSubtle: "#162119",
-  borderAccent: "rgba(34, 197, 94, 0.3)",
+  border: "#333d52",
+  borderSubtle: "#252d3d",
+  borderAccent: "rgba(45, 212, 191, 0.3)",
 
   // Text
-  textPrimary: "#f0f5f2",
-  textSecondary: "#94a89c",
-  textMuted: "#5c7064",
-  textInverse: "#070a08",
+  textPrimary: "#ffffff",
+  textSecondary: "#9ca3af",
+  textMuted: "#6b7280",
+  textInverse: "#141922",
 
-  // Primary accent - vibrant sports green
-  accent: "#22c55e",
-  accentDark: "#16a34a",
-  accentLight: "#4ade80",
-  accentSubtle: "rgba(34, 197, 94, 0.12)",
-  accentGlow: "rgba(34, 197, 94, 0.4)",
+  // Primary accent - teal/mint
+  accent: "#2dd4bf",
+  accentDark: "#14b8a6",
+  accentLight: "#5eead4",
+  accentSubtle: "rgba(45, 212, 191, 0.15)",
+  accentGlow: "rgba(45, 212, 191, 0.4)",
+
+  // Green for featured cards/leagues
+  greenCard: "#166534",
+  greenCardLight: "#22c55e",
 
   // Rankings - gold, silver, bronze
   gold: "#fbbf24",
@@ -34,17 +38,18 @@ export const colors = {
 
   // Status colors
   success: "#22c55e",
-  successSubtle: "rgba(34, 197, 94, 0.12)",
+  successSubtle: "rgba(34, 197, 94, 0.15)",
   danger: "#ef4444",
-  dangerSubtle: "rgba(239, 68, 68, 0.12)",
+  dangerSubtle: "rgba(239, 68, 68, 0.15)",
   warning: "#f59e0b",
-  warningSubtle: "rgba(245, 158, 11, 0.12)",
+  warningSubtle: "rgba(245, 158, 11, 0.15)",
   info: "#3b82f6",
-  infoSubtle: "rgba(59, 130, 246, 0.12)",
+  infoSubtle: "rgba(59, 130, 246, 0.15)",
 
   // Gradients (start, end)
-  gradientCard: ["#101614", "#0d1210"],
-  gradientAccent: ["#22c55e", "#16a34a"],
+  gradientCard: ["#1e2433", "#252d3d"],
+  gradientAccent: ["#2dd4bf", "#14b8a6"],
   gradientGold: ["#fbbf24", "#f59e0b"],
-  gradientSurface: ["#141c17", "#0d1210"],
+  gradientSurface: ["#252d3d", "#1e2433"],
+  gradientGreen: ["#166534", "#15803d"],
 };

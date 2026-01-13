@@ -1,16 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
-import { Button } from "../components/Button";
-import { Card } from "../components/Card";
-import { Input } from "../components/Input";
 import { Screen } from "../components/Screen";
-import { SectionHeader } from "../components/SectionHeader";
 import { Avatar } from "../components/Avatar";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
+import { Input } from "../components/Input";
+import { Button } from "../components/Button";
 import { account } from "../lib/appwrite";
 import { updateProfile, listProfiles } from "../lib/profiles";
 import { listMatches } from "../lib/matches";
@@ -18,69 +16,11 @@ import { fetchLeaderboard } from "../lib/leaderboard";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 
-const StatBox = ({ value, label, color = colors.accent }) => (
-  <View style={styles.statBox}>
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
-const RecentMatchItem = ({ match, playersById, currentUserId }) => {
-  const isPlayer1 = match.player1Id === currentUserId;
-  const opponentId = isPlayer1 ? match.player2Id : match.player1Id;
-  const opponentName = playersById[opponentId]?.displayName ?? "Unknown";
-  const myScore = isPlayer1 ? match.scorePlayer1 : match.scorePlayer2;
-  const theirScore = isPlayer1 ? match.scorePlayer2 : match.scorePlayer1;
-
-  let result = "pending";
-  let resultColor = colors.textMuted;
-  let resultIcon = "~";
-
-  if (match.isCompleted && myScore !== null && theirScore !== null) {
-    if (myScore > theirScore) {
-      result = "Won";
-      resultColor = colors.success;
-      resultIcon = "W";
-    } else if (myScore < theirScore) {
-      result = "Lost";
-      resultColor = colors.danger;
-      resultIcon = "L";
-    } else {
-      result = "Draw";
-      resultColor = colors.warning;
-      resultIcon = "D";
-    }
-  }
-
-  return (
-    <View style={styles.matchItem}>
-      <View style={[styles.resultBadge, { backgroundColor: resultColor + "20" }]}>
-        <Text style={[styles.resultIcon, { color: resultColor }]}>{resultIcon}</Text>
-      </View>
-      <View style={styles.matchInfo}>
-        <Text style={styles.opponentName}>vs {opponentName}</Text>
-        <Text style={styles.matchDate}>
-          {match.weekCommencing?.slice(0, 10) ?? "TBD"}
-        </Text>
-      </View>
-      {match.isCompleted ? (
-        <Text style={[styles.matchScore, { color: resultColor }]}>
-          {myScore} - {theirScore}
-        </Text>
-      ) : (
-        <Text style={styles.matchPending}>Pending</Text>
-      )}
-    </View>
-  );
-};
-
-export const ProfileScreen = () => {
+export const ProfileScreen = ({ navigation }) => {
   const { profile, user, bootstrap, logout, loading } = useAuthStore();
+  const [showEditName, setShowEditName] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
 
   const { data: leaderboard = [] } = useQuery({
     queryKey: ["leaderboard"],
@@ -110,24 +50,18 @@ export const ProfileScreen = () => {
   const myStats = useMemo(() => {
     const entry = leaderboard.find((p) => p.playerId === profile?.$id);
     if (entry) {
+      const total = entry.wins + entry.draws + entry.losses;
       return {
         wins: entry.wins,
-        draws: entry.draws,
         losses: entry.losses,
         points: entry.points,
-        rank: leaderboard.findIndex((p) => p.playerId === profile?.$id) + 1,
+        winRate: total > 0 ? Math.round((entry.wins / total) * 100) : 0,
       };
     }
-    return { wins: 0, draws: 0, losses: 0, points: 0, rank: null };
+    return { wins: 0, losses: 0, points: 0, winRate: 0 };
   }, [leaderboard, profile]);
 
-  const winRate = useMemo(() => {
-    const total = myStats.wins + myStats.draws + myStats.losses;
-    if (total === 0) return 0;
-    return Math.round((myStats.wins / total) * 100);
-  }, [myStats]);
-
-  const handleProfileUpdate = async () => {
+  const handleSaveName = async () => {
     if (!displayName.trim()) {
       Alert.alert("Error", "Display name cannot be empty.");
       return;
@@ -137,36 +71,12 @@ export const ProfileScreen = () => {
       await updateProfile(profile.$id, { displayName: displayName.trim() });
       await bootstrap();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Success", "Profile updated successfully.");
+      setShowEditName(false);
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Update failed", error.message);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handlePasswordUpdate = async () => {
-    if (!currentPassword || !newPassword) {
-      Alert.alert("Error", "Please fill in both password fields.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      Alert.alert("Error", "New password must be at least 8 characters.");
-      return;
-    }
-    setChangingPassword(true);
-    try {
-      await account.updatePassword(newPassword, currentPassword);
-      setCurrentPassword("");
-      setNewPassword("");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Success", "Password updated successfully.");
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Update failed", error.message);
-    } finally {
-      setChangingPassword(false);
     }
   };
 
@@ -189,7 +99,6 @@ export const ProfileScreen = () => {
       <Screen>
         <View style={styles.loadingContainer}>
           <LoadingSpinner size={48} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </Screen>
     );
@@ -199,303 +108,238 @@ export const ProfileScreen = () => {
     return (
       <Screen>
         <EmptyState
-          icon="error"
-          title="Profile not found"
-          message="We couldn't load your profile. Please try again."
-          actionTitle="Retry"
+          icon="person"
+          title="Complete Your Profile"
+          message="Set up your profile to start playing."
+          actionTitle="Set Up Profile"
           onAction={bootstrap}
         />
       </Screen>
     );
   }
 
-  const last5Matches = recentMatches.slice(0, 5);
+  // Get current match if any
+  const currentMatch = recentMatches.find((m) => !m.isCompleted);
+  const currentOpponent = currentMatch
+    ? playersById[
+        currentMatch.player1Id === profile.$id
+          ? currentMatch.player2Id
+          : currentMatch.player1Id
+      ]?.displayName ?? "Unknown"
+    : null;
 
   return (
     <Screen>
-      {/* Header with gradient background */}
-      <LinearGradient
-        colors={[colors.accentSubtle, "transparent"]}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <Avatar name={profile.displayName} size={80} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.name}>{profile.displayName}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.badgeRow}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>
-                  {profile.role === "admin" ? "Admin" : "Player"}
-                </Text>
-              </View>
-              {myStats.rank && (
-                <View style={[styles.roleBadge, styles.rankBadge]}>
-                  <Text style={styles.rankText}>#{myStats.rank}</Text>
-                </View>
-              )}
+      <Text style={styles.screenTitle}>PLAYER PROFILE</Text>
+
+      {/* Centered Avatar and Name */}
+      <View style={styles.profileHeader}>
+        <Avatar name={profile.displayName} size={100} />
+        <Text style={styles.playerName}>{profile.displayName}</Text>
+      </View>
+
+      {/* Stats Row */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>LEAGUE RATING:</Text>
+          <Text style={styles.statValueLarge}>{myStats.points}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>WIN RATE:</Text>
+          <Text style={styles.statValueLarge}>{myStats.winRate}%</Text>
+        </View>
+      </View>
+
+      {/* Recent Performance Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>RECENT PERFORMANCE</Text>
+        <View style={styles.performanceBox}>
+          <View style={styles.performanceStats}>
+            <View style={styles.performanceStat}>
+              <Text style={[styles.performanceValue, { color: colors.success }]}>
+                {myStats.wins}
+              </Text>
+              <Text style={styles.performanceLabel}>Wins</Text>
+            </View>
+            <View style={styles.performanceStat}>
+              <Text style={[styles.performanceValue, { color: colors.danger }]}>
+                {myStats.losses}
+              </Text>
+              <Text style={styles.performanceLabel}>Losses</Text>
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* Stats Card */}
-      <Card highlight glow>
-        <Text style={styles.sectionTitle}>Your Stats</Text>
-        <View style={styles.statsGrid}>
-          <StatBox value={myStats.wins} label="Wins" color={colors.success} />
-          <StatBox value={myStats.draws} label="Draws" color={colors.warning} />
-          <StatBox value={myStats.losses} label="Losses" color={colors.danger} />
-          <StatBox value={myStats.points} label="Points" color={colors.accent} />
-        </View>
-        {/* Win Rate Bar */}
-        <View style={styles.winRateContainer}>
-          <View style={styles.winRateHeader}>
-            <Text style={styles.winRateLabel}>Win Rate</Text>
-            <Text style={styles.winRateValue}>{winRate}%</Text>
-          </View>
-          <View style={styles.winRateBar}>
-            <View style={[styles.winRateFill, { width: `${winRate}%` }]} />
+      {/* Current Match */}
+      {currentMatch && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>CURRENT MATCH</Text>
+          <View style={styles.currentMatchBox}>
+            <Text style={styles.currentMatchText}>
+              vs {currentOpponent}
+            </Text>
           </View>
         </View>
-      </Card>
+      )}
 
-      {/* Recent Matches */}
-      <Card>
-        <Text style={styles.sectionTitle}>Recent Matches</Text>
-        {last5Matches.length > 0 ? (
-          last5Matches.map((match) => (
-            <RecentMatchItem
-              key={match.$id}
-              match={match}
-              playersById={playersById}
-              currentUserId={profile.$id}
+      {/* Settings Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>SETTINGS</Text>
+
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => setShowEditName(!showEditName)}
+        >
+          <Text style={styles.menuItemText}>Edit Display Name</Text>
+          <Ionicons
+            name={showEditName ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textMuted}
+          />
+        </Pressable>
+
+        {showEditName && (
+          <View style={styles.editNameBox}>
+            <Input
+              label="Display name"
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Your name"
             />
-          ))
-        ) : (
-          <Text style={styles.noMatches}>No matches played yet</Text>
+            <Button
+              title={saving ? "Saving..." : "Save"}
+              onPress={handleSaveName}
+              disabled={saving}
+            />
+          </View>
         )}
-      </Card>
 
-      {/* Edit Profile */}
-      <Card>
-        <Text style={styles.sectionTitle}>Edit Profile</Text>
-        <Input
-          label="Display name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Your name"
-        />
-        <Button
-          title={saving ? "Saving..." : "Save Changes"}
-          onPress={handleProfileUpdate}
-          disabled={saving}
-        />
-      </Card>
-
-      {/* Change Password */}
-      <Card>
-        <Text style={styles.sectionTitle}>Change Password</Text>
-        <Input
-          label="Current password"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          secureTextEntry
-          placeholder="Enter current password"
-        />
-        <Input
-          label="New password"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          secureTextEntry
-          placeholder="Enter new password (min 8 chars)"
-        />
-        <Button
-          title={changingPassword ? "Updating..." : "Update Password"}
-          onPress={handlePasswordUpdate}
-          disabled={changingPassword}
-          variant="outline"
-        />
-      </Card>
-
-      {/* Session */}
-      <Card>
-        <Text style={styles.sectionTitle}>Session</Text>
-        <Text style={styles.sessionInfo}>
-          Signed in as {user?.email}
-        </Text>
-        <Button
-          title="Sign Out"
-          onPress={handleLogout}
-          variant="danger"
-        />
-      </Card>
+        <Pressable style={styles.menuItem} onPress={handleLogout}>
+          <Text style={[styles.menuItemText, { color: colors.danger }]}>
+            Log Out
+          </Text>
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+        </Pressable>
+      </View>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
+  screenTitle: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 24,
+    letterSpacing: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  loadingText: {
-    color: colors.textMuted,
-    marginTop: 16,
-    fontSize: 14,
+  profileHeader: {
+    alignItems: "center",
+    marginBottom: 24,
   },
-  headerGradient: {
-    marginHorizontal: -16,
-    marginTop: -16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-    marginBottom: 8,
+  playerName: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
     borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
   },
-  header: {
-    flexDirection: "row",
+  statItem: {
+    flex: 1,
     alignItems: "center",
   },
-  headerInfo: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  name: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  email: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginTop: 2,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    marginTop: 8,
-    gap: 8,
-  },
-  roleBadge: {
-    backgroundColor: colors.accentSubtle,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  roleText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  rankBadge: {
-    backgroundColor: colors.goldGlow,
-  },
-  rankText: {
-    color: colors.gold,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  statBox: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: "800",
+  statDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
   },
   statLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "500",
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  statValueLarge: {
+    color: colors.accent,
+    fontSize: 36,
+    fontWeight: "800",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  performanceBox: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+  },
+  performanceStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  performanceStat: {
+    alignItems: "center",
+  },
+  performanceValue: {
+    fontSize: 32,
+    fontWeight: "800",
+  },
+  performanceLabel: {
     color: colors.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
-  winRateContainer: {
-    marginTop: 16,
+  currentMatchBox: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
   },
-  winRateHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  winRateLabel: {
-    color: colors.textSecondary,
-    fontSize: 13,
-  },
-  winRateValue: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  winRateBar: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  winRateFill: {
-    height: "100%",
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-  },
-  matchItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  resultBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  resultIcon: {
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  matchInfo: {
-    flex: 1,
-  },
-  opponentName: {
+  currentMatchText: {
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "500",
   },
-  matchDate: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
   },
-  matchScore: {
-    fontSize: 16,
-    fontWeight: "700",
+  menuItemText: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "500",
   },
-  matchPending: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  noMatches: {
-    color: colors.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: 16,
-  },
-  sessionInfo: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginBottom: 12,
+  editNameBox: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
   },
 });

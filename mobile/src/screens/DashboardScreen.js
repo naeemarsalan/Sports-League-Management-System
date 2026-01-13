@@ -1,28 +1,65 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Button } from "../components/Button";
-import { Card } from "../components/Card";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
-import { SectionHeader } from "../components/SectionHeader";
 import { Avatar } from "../components/Avatar";
 import { fetchLeaderboard } from "../lib/leaderboard";
 import { listMatches } from "../lib/matches";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 
-const QuickStatCard = ({ icon, value, label, color = colors.accent }) => (
-  <View style={styles.quickStatCard}>
-    <Text style={styles.quickStatIcon}>{icon}</Text>
-    <Text style={[styles.quickStatValue, { color }]}>{value}</Text>
-    <Text style={styles.quickStatLabel}>{label}</Text>
-  </View>
+const LeagueCard = ({ title, week, progress, onPress }) => (
+  <Pressable
+    onPress={() => {
+      Haptics.selectionAsync();
+      onPress?.();
+    }}
+    style={styles.leagueCardWrapper}
+  >
+    <LinearGradient
+      colors={colors.gradientGreen}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.leagueCard}
+    >
+      <View style={styles.leagueCardContent}>
+        <Text style={styles.leagueTitle}>{title}</Text>
+        <Text style={styles.leagueWeek}>Week {week}</Text>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={styles.progressText}>{progress}%</Text>
+        </View>
+      </View>
+      <View style={styles.leagueIconContainer}>
+        <Ionicons name="tennisball" size={48} color="rgba(255,255,255,0.3)" />
+      </View>
+    </LinearGradient>
+  </Pressable>
+);
+
+const ActionButton = ({ icon, label, onPress }) => (
+  <Pressable
+    onPress={() => {
+      Haptics.selectionAsync();
+      onPress?.();
+    }}
+    style={styles.actionButton}
+  >
+    <View style={styles.actionIconContainer}>
+      <Ionicons name={icon} size={22} color={colors.accent} />
+    </View>
+    <Text style={styles.actionLabel}>{label}</Text>
+    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+  </Pressable>
 );
 
 export const DashboardScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
-  const roleLabel = profile?.role === "admin" ? "Admin" : "Player";
 
   // Fetch leaderboard for user stats
   const { data: leaderboard = [] } = useQuery({
@@ -41,13 +78,25 @@ export const DashboardScreen = ({ navigation }) => {
   // Calculate user's stats
   const myStats = useMemo(() => {
     const entry = leaderboard.find((p) => p.playerId === profile?.$id);
-    const rank = leaderboard.findIndex((p) => p.playerId === profile?.$id) + 1;
+    const totalMatches = matches.length;
+    const completedMatches = matches.filter((m) => m.isCompleted).length;
+    const progress = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
     return {
       wins: entry?.wins ?? 0,
-      rank: rank > 0 ? rank : "-",
+      points: entry?.points ?? 0,
       upcomingMatches: matches.filter((m) => !m.isCompleted).length,
+      progress,
     };
   }, [leaderboard, matches, profile]);
+
+  // Get current week number
+  const currentWeek = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const diff = now.getTime() - start.getTime();
+    const oneWeek = 1000 * 60 * 60 * 24 * 7;
+    return Math.ceil(diff / oneWeek);
+  }, []);
 
   // Animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -70,7 +119,7 @@ export const DashboardScreen = ({ navigation }) => {
 
   return (
     <Screen>
-      {/* Welcome Header with Avatar */}
+      {/* Welcome Header */}
       <Animated.View
         style={[
           styles.welcomeHeader,
@@ -80,94 +129,89 @@ export const DashboardScreen = ({ navigation }) => {
           },
         ]}
       >
-        <Avatar name={profile?.displayName} size={56} />
-        <View style={styles.welcomeInfo}>
+        <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.welcomeName}>{profile?.displayName ?? "Player"}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{roleLabel}</Text>
-          </View>
         </View>
+        <Pressable onPress={() => navigation.navigate("Profile")}>
+          <Avatar name={profile?.displayName} size={48} />
+        </Pressable>
       </Animated.View>
 
-      {/* Quick Stats Row */}
-      <LinearGradient
-        colors={[colors.surfaceAlt, colors.surface]}
-        style={styles.statsRow}
-      >
-        <QuickStatCard
-          icon="🏆"
-          value={`#${myStats.rank}`}
-          label="Rank"
-          color={colors.gold}
-        />
-        <View style={styles.statDivider} />
-        <QuickStatCard
-          icon="✓"
-          value={myStats.wins}
-          label="Wins"
-          color={colors.success}
-        />
-        <View style={styles.statDivider} />
-        <QuickStatCard
-          icon="📅"
-          value={myStats.upcomingMatches}
-          label="Upcoming"
-          color={colors.info}
-        />
-      </LinearGradient>
-
-      {/* Quick Actions */}
-      <Card highlight glow>
-        <Text style={styles.cardTitle}>Quick Actions</Text>
-        <Button
-          title="⚔️  Challenge Player"
-          onPress={() => navigation.navigate("Challenge")}
-        />
-        <Button
-          title="🎯  View Matches"
-          onPress={() => navigation.navigate("Matches")}
-          variant="outline"
-        />
-        <Button
-          title="📊  Leaderboard"
+      {/* Your Leagues Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>YOUR LEAGUES</Text>
+        <LeagueCard
+          title="Sports League"
+          week={currentWeek}
+          progress={myStats.progress || 25}
           onPress={() => navigation.navigate("Leaderboard")}
-          variant="outline"
         />
-      </Card>
+      </View>
+
+      {/* Quick Actions Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
+        <View style={styles.actionsContainer}>
+          <ActionButton
+            icon="flash-outline"
+            label="Challenge Player"
+            onPress={() => navigation.navigate("Challenge")}
+          />
+          <ActionButton
+            icon="calendar-outline"
+            label="View Matches"
+            onPress={() => navigation.navigate("Matches")}
+          />
+          <ActionButton
+            icon="trophy-outline"
+            label="Standings"
+            onPress={() => navigation.navigate("Leaderboard")}
+          />
+        </View>
+      </View>
 
       {/* Admin Controls */}
       {profile?.role === "admin" && (
-        <Card>
-          <Text style={styles.cardTitle}>Admin Controls</Text>
-          <Button
-            title="👥  Manage Players"
-            onPress={() => navigation.navigate("ManagePlayers")}
-          />
-          <Button
-            title="➕  Create Match"
-            onPress={() => navigation.navigate("NewMatch")}
-            variant="outline"
-          />
-        </Card>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ADMIN</Text>
+          <View style={styles.actionsContainer}>
+            <ActionButton
+              icon="people-outline"
+              label="Manage Players"
+              onPress={() => navigation.navigate("ManagePlayers")}
+            />
+            <ActionButton
+              icon="add-circle-outline"
+              label="Create Match"
+              onPress={() => navigation.navigate("NewMatch")}
+            />
+          </View>
+        </View>
       )}
 
-      {/* Upcoming Match Preview */}
-      {matches.length > 0 && !matches[0].isCompleted && (
-        <Card>
-          <Text style={styles.cardTitle}>Next Match</Text>
-          <View style={styles.nextMatchPreview}>
-            <Text style={styles.nextMatchDate}>
-              📅 {matches[0].weekCommencing?.slice(0, 10) ?? "TBD"}
-            </Text>
-            <Text style={styles.nextMatchStatus}>Open</Text>
+      {/* Upcoming Matches */}
+      {myStats.upcomingMatches > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>UPCOMING</Text>
+          <View style={styles.upcomingCard}>
+            <View style={styles.upcomingInfo}>
+              <Ionicons name="time-outline" size={20} color={colors.accent} />
+              <Text style={styles.upcomingText}>
+                {myStats.upcomingMatches} match{myStats.upcomingMatches > 1 ? "es" : ""} scheduled
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                navigation.navigate("Matches");
+              }}
+              style={styles.upcomingButton}
+            >
+              <Text style={styles.upcomingButtonText}>View</Text>
+            </Pressable>
           </View>
-          <Button
-            title="View Details"
-            onPress={() => navigation.navigate("Matches")}
-            variant="outline"
-          />
-        </Card>
+        </View>
       )}
     </Screen>
   );
@@ -177,11 +221,8 @@ const styles = StyleSheet.create({
   welcomeHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-  },
-  welcomeInfo: {
-    marginLeft: 16,
-    flex: 1,
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
   welcomeText: {
     color: colors.textMuted,
@@ -193,71 +234,119 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 2,
   },
-  roleBadge: {
-    backgroundColor: colors.accentSubtle,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 6,
-    alignSelf: "flex-start",
+  section: {
+    marginBottom: 24,
   },
-  roleText: {
-    color: colors.accent,
+  sectionTitle: {
+    color: colors.textMuted,
     fontSize: 12,
     fontWeight: "600",
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  quickStatCard: {
-    alignItems: "center",
-    flex: 1,
-  },
-  quickStatIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  quickStatValue: {
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  quickStatLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-  },
-  cardTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
+    letterSpacing: 0.5,
     marginBottom: 12,
   },
-  nextMatchPreview: {
+  leagueCardWrapper: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  leagueCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: colors.surfaceAlt,
-    padding: 12,
-    borderRadius: 10,
+    padding: 20,
+    minHeight: 120,
+  },
+  leagueCardContent: {
+    flex: 1,
+  },
+  leagueTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  leagueWeek: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
     marginBottom: 12,
   },
-  nextMatchDate: {
-    color: colors.textSecondary,
-    fontSize: 14,
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  nextMatchStatus: {
-    color: colors.warning,
-    fontSize: 13,
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 3,
+    marginRight: 10,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: colors.textPrimary,
+    borderRadius: 3,
+  },
+  progressText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  leagueIconContainer: {
+    marginLeft: 16,
+    opacity: 0.8,
+  },
+  actionsContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  actionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.accentSubtle,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  actionLabel: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  upcomingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+  },
+  upcomingInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  upcomingText: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    marginLeft: 10,
+  },
+  upcomingButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  upcomingButtonText: {
+    color: colors.background,
+    fontSize: 14,
     fontWeight: "600",
   },
 });

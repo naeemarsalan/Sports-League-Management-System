@@ -7,6 +7,11 @@ export const useAuthStore = create((set, get) => ({
   profile: null,
   loading: false,
   error: null,
+  // Computed: user is logged in but has no profile
+  get needsProfileSetup() {
+    const state = get();
+    return state.user !== null && state.profile === null && !state.loading;
+  },
   bootstrap: async () => {
     set({ loading: true, error: null });
     try {

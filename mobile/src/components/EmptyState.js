@@ -1,15 +1,18 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "./Button";
 import { colors } from "../theme/colors";
 
-const icons = {
-  matches: "🏆",
-  players: "👥",
-  leaderboard: "📊",
-  search: "🔍",
-  error: "⚠️",
-  empty: "📭",
+const iconMap = {
+  matches: "football-outline",
+  players: "people-outline",
+  leaderboard: "trophy-outline",
+  search: "search-outline",
+  error: "warning-outline",
+  empty: "mail-open-outline",
+  person: "person-outline",
+  calendar: "calendar-outline",
 };
 
 export const EmptyState = ({
@@ -19,12 +22,12 @@ export const EmptyState = ({
   actionTitle,
   onAction,
 }) => {
-  const emoji = icons[icon] || icons.empty;
+  const iconName = iconMap[icon] || iconMap.empty;
 
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{emoji}</Text>
+        <Ionicons name={iconName} size={40} color={colors.accent} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {message && <Text style={styles.message}>{message}</Text>}
@@ -53,9 +56,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
-  },
-  icon: {
-    fontSize: 36,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
     color: colors.textPrimary,
