@@ -9,6 +9,7 @@ module.exports = async ({ req, res, log, error }) => {
   const endpoint = process.env.APPWRITE_ENDPOINT;
   const projectId = process.env.APPWRITE_PROJECT_ID;
   const apiKey = process.env.APPWRITE_API_KEY;
+  const providerId = process.env.PUSH_PROVIDER_ID || "expo-push";
 
   if (!endpoint || !projectId || !apiKey) {
     error("Missing required environment variables");
@@ -67,6 +68,7 @@ module.exports = async ({ req, res, log, error }) => {
       body: JSON.stringify({
         targetId,
         providerType: "push",
+        providerId,
         identifier: token,
         name: `${platform || "mobile"}_push_${Date.now()}`,
       }),

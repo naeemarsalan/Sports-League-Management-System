@@ -22,7 +22,7 @@ export const fetchLeaderboard = async (leagueId = null) => {
     let matchesRes;
     let members = [];
 
-    if (leagueId) {
+    if (leagueId && typeof leagueId === "string" && leagueId.trim().length > 0) {
       try {
         // Try fetching with leagueId filter
         matchesRes = await databases.listDocuments(
@@ -33,17 +33,22 @@ export const fetchLeaderboard = async (leagueId = null) => {
         members = await getLeagueMembers(leagueId, "approved");
       } catch (queryError) {
         // If leagueId query fails (e.g., old matches without leagueId), fetch all and filter
-        console.log("Falling back to fetching all matches:", queryError.message);
-        matchesRes = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.matchesCollectionId,
-          matchQueries
-        );
-        // Filter matches by leagueId client-side
-        matchesRes.documents = matchesRes.documents.filter(
-          (m) => m.leagueId === leagueId || !m.leagueId
-        );
-        members = await getLeagueMembers(leagueId, "approved");
+        console.warn("Falling back to fetching all matches:", queryError.message);
+        try {
+          matchesRes = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.matchesCollectionId,
+            matchQueries
+          );
+          // Filter matches by leagueId client-side
+          matchesRes.documents = matchesRes.documents.filter(
+            (m) => m.leagueId === leagueId || !m.leagueId
+          );
+          members = await getLeagueMembers(leagueId, "approved");
+        } catch (fallbackError) {
+          console.warn("Fallback query also failed:", fallbackError.message);
+          return [];
+        }
       }
     } else {
       // No league filter - fetch all matches

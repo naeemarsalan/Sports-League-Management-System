@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { Account, Client, Databases, Functions, ID, Query } from "appwrite";
+import { Account, Client, Databases, Functions, ID, Permission, Query, Role } from "appwrite";
 
 const extra = Constants.expoConfig?.extra ?? {};
 
@@ -20,4 +20,4 @@ client.setEndpoint(appwriteConfig.endpoint).setProject(appwriteConfig.projectId)
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const functions = new Functions(client);
-export { ID, Query };
+export { ID, Permission, Query, Role };

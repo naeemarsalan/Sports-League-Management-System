@@ -13,7 +13,10 @@ import {
   registerForPushNotifications,
   savePushToken,
   addNotificationListeners,
+  getLastNotificationResponse,
 } from "./src/lib/notifications";
+import { navigationRef } from "./src/lib/navigation";
+import { getMatch } from "./src/lib/matches";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,17 @@ function SafeAreaProviderCompat({ children }) {
 
   return <SafeAreaProvider>{children}</SafeAreaProvider>;
 }
+
+const navigateToMatch = async (matchId) => {
+  try {
+    const match = await getMatch(matchId);
+    if (navigationRef.isReady()) {
+      navigationRef.navigate("MatchDetail", { match, playersById: {} });
+    }
+  } catch (error) {
+    console.warn("Failed to navigate to match:", error.message);
+  }
+};
 
 function NotificationHandler() {
   const { user } = useAuthStore();
@@ -73,9 +87,21 @@ function NotificationHandler() {
       (response) => {
         const data = response.notification.request.content.data;
         console.log("User tapped notification:", data);
-        // Navigation will be handled by deep linking in AppNavigator
+        if (data?.matchId) {
+          navigateToMatch(data.matchId);
+        }
       }
     );
+
+    // Handle cold-start deep linking
+    getLastNotificationResponse().then((response) => {
+      if (response) {
+        const data = response.notification.request.content.data;
+        if (data?.matchId) {
+          navigateToMatch(data.matchId);
+        }
+      }
+    });
 
     return cleanup;
   }, []);

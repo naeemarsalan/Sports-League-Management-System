@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { DatePicker } from "../components/DatePicker";
 import { Input } from "../components/Input";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
@@ -15,7 +16,9 @@ export const MatchDetailScreen = ({ route, navigation }) => {
   const { profile } = useAuthStore();
   const { match, playersById } = route.params;
 
-  const [scheduledAt, setScheduledAt] = useState(formatDateTime(match.scheduledAt));
+  const [scheduledAt, setScheduledAt] = useState(
+    match.scheduledAt ? new Date(match.scheduledAt) : null
+  );
   const [score1, setScore1] = useState(match.scorePlayer1?.toString() ?? "");
   const [score2, setScore2] = useState(match.scorePlayer2?.toString() ?? "");
 
@@ -32,12 +35,21 @@ export const MatchDetailScreen = ({ route, navigation }) => {
     return [match.player1Id, match.player2Id].includes(profile.$id);
   }, [match, profile]);
 
+  const opponentId = profile?.$id === match.player1Id ? match.player2Id : match.player1Id;
+
   const handleSchedule = async () => {
     try {
       const payload = scheduledAt
-        ? { scheduledAt: new Date(scheduledAt).toISOString() }
+        ? { scheduledAt: scheduledAt.toISOString() }
         : { scheduledAt: null };
-      await updateMatch(match.$id, payload);
+      await updateMatch(match.$id, payload, {
+        playerIds: [opponentId],
+        type: "match_scheduled",
+        data: {
+          opponentName: profile?.displayName,
+          scheduledAt: payload.scheduledAt,
+        },
+      });
       Alert.alert("Updated", "Match schedule updated.");
       navigation.goBack();
     } catch (error) {
@@ -57,6 +69,15 @@ export const MatchDetailScreen = ({ route, navigation }) => {
         scorePlayer1: parsedScore1,
         scorePlayer2: parsedScore2,
         isCompleted: true,
+      }, {
+        playerIds: [match.player1Id, match.player2Id],
+        type: "score_submitted",
+        data: {
+          scorePlayer1: parsedScore1,
+          scorePlayer2: parsedScore2,
+          player1Name: player1,
+          player2Name: player2,
+        },
       });
       Alert.alert("Updated", "Score submitted.");
       navigation.goBack();
@@ -76,11 +97,12 @@ export const MatchDetailScreen = ({ route, navigation }) => {
       </Card>
       <Card>
         <Text style={styles.section}>Schedule match</Text>
-        <Input
-          label="YYYY-MM-DD HH:MM"
+        <DatePicker
+          label="Scheduled date & time"
           value={scheduledAt}
-          onChangeText={setScheduledAt}
-          placeholder="2025-07-15 19:00"
+          onChange={setScheduledAt}
+          mode="datetime"
+          placeholder="Pick a date & time..."
         />
         <Button title="Update schedule" onPress={handleSchedule} disabled={!canEdit} />
       </Card>

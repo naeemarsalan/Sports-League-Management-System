@@ -7,6 +7,7 @@ import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../state/useAuthStore";
 import { useLeagueStore } from "../state/useLeagueStore";
+import { navigationRef } from "../lib/navigation";
 import { DashboardScreen } from "../screens/DashboardScreen";
 import { MatchesScreen } from "../screens/MatchesScreen";
 import { LeaderboardScreen } from "../screens/LeaderboardScreen";
@@ -22,6 +23,7 @@ import { CreateLeagueScreen } from "../screens/CreateLeagueScreen";
 import { JoinLeagueScreen } from "../screens/JoinLeagueScreen";
 import { LeagueMembersScreen } from "../screens/LeagueMembersScreen";
 import { LeagueSettingsScreen } from "../screens/LeagueSettingsScreen";
+import { NewMatchScreen } from "../screens/admin/NewMatchScreen";
 import { colors } from "../theme/colors";
 
 const Stack = Platform.OS === "web" ? createStackNavigator() : createNativeStackNavigator();
@@ -122,7 +124,7 @@ export const AppNavigator = () => {
   const needsProfileSetup = user && !profile;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {user ? (
         needsProfileSetup ? (
           <Stack.Navigator screenOptions={options}>
@@ -174,6 +176,11 @@ export const AppNavigator = () => {
               name="LeagueSettings"
               component={LeagueSettingsScreen}
               options={{ title: "League Settings" }}
+            />
+            <Stack.Screen
+              name="NewMatch"
+              component={NewMatchScreen}
+              options={{ title: "Create Match" }}
             />
           </Stack.Navigator>
         )

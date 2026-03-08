@@ -1,4 +1,4 @@
-import { databases, functions, ID, Query, appwriteConfig } from "./appwrite";
+import { databases, functions, ID, Permission, Query, Role, appwriteConfig } from "./appwrite";
 
 /**
  * Send a push notification (fire-and-forget, doesn't throw on failure)
@@ -38,7 +38,7 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
   let documents;
 
   // Try to filter by leagueId if provided
-  if (leagueId) {
+  if (leagueId && typeof leagueId === "string" && leagueId.trim().length > 0) {
     try {
       const response = await databases.listDocuments(
         appwriteConfig.databaseId,
@@ -83,7 +83,12 @@ export const createMatch = async (payload, challengerName = null) => {
     appwriteConfig.databaseId,
     appwriteConfig.matchesCollectionId,
     ID.unique(),
-    payload
+    payload,
+    [
+      Permission.read(Role.users()),
+      Permission.update(Role.users()),
+      Permission.delete(Role.users()),
+    ]
   );
 
   // Send push notification to opponent (player2)

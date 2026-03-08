@@ -119,7 +119,9 @@
         {
             "$id": "matches",
             "$permissions": [
-                "read(\"users\")"
+                "read(\"users\")",
+                "create(\"users\")",
+                "update(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "Matches",

@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Input } from "../components/Input";
+import { DatePicker } from "../components/DatePicker";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { EmptyState } from "../components/EmptyState";
@@ -21,6 +21,16 @@ import { getLeagueMemberProfiles } from "../lib/members";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 import { useLeagueStore } from "../state/useLeagueStore";
+
+/** Returns the next Monday from today (or today if it is Monday). */
+const getNextMonday = () => {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun, 1=Mon, ...
+  const diff = day === 0 ? 1 : day === 1 ? 0 : 8 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 export const ChallengeScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
@@ -32,10 +42,11 @@ export const ChallengeScreen = ({ navigation }) => {
     enabled: !!currentLeagueId,
   });
 
+  const [step, setStep] = useState(1);
   const [selectedOpponent, setSelectedOpponent] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [weekCommencing, setWeekCommencing] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [weekCommencing, setWeekCommencing] = useState(getNextMonday());
+  const [scheduledAt, setScheduledAt] = useState(null);
   const [creating, setCreating] = useState(false);
 
   // Filter out current user and apply search filter
@@ -50,6 +61,7 @@ export const ChallengeScreen = ({ navigation }) => {
   const handleSelectOpponent = (opponent) => {
     Haptics.selectionAsync();
     setSelectedOpponent(opponent);
+    setStep(2);
   };
 
   const handleChallenge = async () => {
@@ -58,7 +70,7 @@ export const ChallengeScreen = ({ navigation }) => {
       return;
     }
     if (!weekCommencing) {
-      Alert.alert("Select date", "Please enter the week commencing date.");
+      Alert.alert("Select date", "Please pick the week commencing date.");
       return;
     }
 
@@ -69,8 +81,8 @@ export const ChallengeScreen = ({ navigation }) => {
           player1Id: profile.$id,
           player2Id: selectedOpponent.$id,
           leagueId: currentLeagueId,
-          weekCommencing: new Date(weekCommencing).toISOString(),
-          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          weekCommencing: weekCommencing.toISOString(),
+          scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
           isCompleted: false,
         },
         profile.displayName // Pass challenger name for push notification
@@ -133,11 +145,72 @@ export const ChallengeScreen = ({ navigation }) => {
     );
   }
 
+  /* ───── Step 2: Pick Dates & Confirm ───── */
+  if (step === 2) {
+    return (
+      <Screen>
+        <SectionHeader
+          title="Schedule Match"
+          subtitle={currentLeague?.name ? `In ${currentLeague.name}` : "Pick dates for the match"}
+        />
+
+        {/* Selected opponent summary */}
+        <Card>
+          <View style={styles.opponentSummary}>
+            <View style={[styles.avatar, styles.avatarSelected]}>
+              <Text style={styles.avatarText}>
+                {selectedOpponent?.displayName?.charAt(0)?.toUpperCase() || "?"}
+              </Text>
+            </View>
+            <View style={styles.opponentInfo}>
+              <Text style={styles.opponentName}>
+                {selectedOpponent?.displayName}
+              </Text>
+              <Pressable onPress={() => setStep(1)}>
+                <Text style={styles.changeLink}>Change opponent</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Card>
+
+        <Card>
+          <DatePicker
+            label="Week commencing"
+            value={weekCommencing}
+            onChange={setWeekCommencing}
+            mode="date"
+            placeholder="Select week..."
+          />
+          <DatePicker
+            label="Scheduled time (optional)"
+            value={scheduledAt}
+            onChange={setScheduledAt}
+            mode="datetime"
+            placeholder="Pick a date & time..."
+          />
+          <View style={styles.buttonRow}>
+            <Pressable onPress={() => setStep(1)} style={styles.backButton}>
+              <Text style={styles.backButtonText}>Back</Text>
+            </Pressable>
+            <View style={styles.challengeButton}>
+              <Button
+                title={creating ? "Creating match..." : "Challenge!"}
+                onPress={handleChallenge}
+                disabled={creating}
+              />
+            </View>
+          </View>
+        </Card>
+      </Screen>
+    );
+  }
+
+  /* ───── Step 1: Select Opponent ───── */
   return (
     <Screen scroll={false}>
       <SectionHeader
         title="Challenge Player"
-        subtitle={currentLeague?.name ? `In ${currentLeague.name}` : "Select an opponent and schedule your match"}
+        subtitle={currentLeague?.name ? `In ${currentLeague.name}` : "Select an opponent"}
       />
 
       <Text style={styles.sectionTitle}>Select Opponent</Text>
@@ -183,25 +256,11 @@ export const ChallengeScreen = ({ navigation }) => {
         )}
       </View>
 
-      <Card>
-        <Input
-          label="Week commencing (YYYY-MM-DD)"
-          value={weekCommencing}
-          onChangeText={setWeekCommencing}
-          placeholder="2025-07-07"
-        />
-        <Input
-          label="Scheduled time (optional, YYYY-MM-DD HH:MM)"
-          value={scheduledAt}
-          onChangeText={setScheduledAt}
-          placeholder="2025-07-15 19:00"
-        />
-        <Button
-          title={creating ? "Creating match..." : "Challenge!"}
-          onPress={handleChallenge}
-          disabled={creating || !selectedOpponent}
-        />
-      </Card>
+      {selectedOpponent && (
+        <View style={styles.nextBar}>
+          <Button title="Next" onPress={() => setStep(2)} />
+        </View>
+      )}
     </Screen>
   );
 };
@@ -313,5 +372,38 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     fontSize: 16,
     fontWeight: "700",
+  },
+  opponentSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  changeLink: {
+    color: colors.accent,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  backButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  backButtonText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  challengeButton: {
+    flex: 1,
+  },
+  nextBar: {
+    paddingTop: 8,
   },
 });

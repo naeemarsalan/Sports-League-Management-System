@@ -4,14 +4,16 @@ import { Picker } from "@react-native-picker/picker";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
-import { Input } from "../../components/Input";
+import { DatePicker } from "../../components/DatePicker";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
 import { createMatch } from "../../lib/matches";
 import { listProfiles } from "../../lib/profiles";
 import { colors } from "../../theme/colors";
+import { useLeagueStore } from "../../state/useLeagueStore";
 
 export const NewMatchScreen = ({ navigation }) => {
+  const { currentLeagueId } = useLeagueStore();
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
     queryFn: listProfiles,
@@ -19,8 +21,8 @@ export const NewMatchScreen = ({ navigation }) => {
 
   const [player1Id, setPlayer1Id] = useState("");
   const [player2Id, setPlayer2Id] = useState("");
-  const [weekCommencing, setWeekCommencing] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [weekCommencing, setWeekCommencing] = useState(null);
+  const [scheduledAt, setScheduledAt] = useState(null);
 
   const handleCreate = async () => {
     if (!player1Id || !player2Id || !weekCommencing) {
@@ -31,8 +33,9 @@ export const NewMatchScreen = ({ navigation }) => {
       await createMatch({
         player1Id,
         player2Id,
-        weekCommencing: new Date(weekCommencing).toISOString(),
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        leagueId: currentLeagueId,
+        weekCommencing: weekCommencing.toISOString(),
+        scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
         isCompleted: false,
       });
       Alert.alert("Created", "Match scheduled.");
@@ -64,17 +67,19 @@ export const NewMatchScreen = ({ navigation }) => {
             ))}
           </Picker>
         </View>
-        <Input
-          label="Week commencing (YYYY-MM-DD)"
+        <DatePicker
+          label="Week commencing"
           value={weekCommencing}
-          onChangeText={setWeekCommencing}
-          placeholder="2025-07-07"
+          onChange={setWeekCommencing}
+          mode="date"
+          placeholder="Select week..."
         />
-        <Input
-          label="Scheduled at (optional, YYYY-MM-DD HH:MM)"
+        <DatePicker
+          label="Scheduled at (optional)"
           value={scheduledAt}
-          onChangeText={setScheduledAt}
-          placeholder="2025-07-15 19:00"
+          onChange={setScheduledAt}
+          mode="datetime"
+          placeholder="Pick a date & time..."
         />
         <Button title="Create match" onPress={handleCreate} />
       </Card>

@@ -97,7 +97,11 @@ class AppwriteAdmin:
 
 
 def build_permissions(member_role: str, admin_role: Optional[str]) -> list:
-    permissions = [f'read("{member_role}")']
+    permissions = [
+        f'read("{member_role}")',
+        f'create("{member_role}")',
+        f'update("{member_role}")',
+    ]
     if admin_role:
         permissions.append(f'write("{admin_role}")')
     return permissions
