@@ -54,7 +54,9 @@ function ensureStanding(state, playerId, name) {
   return state[playerId];
 }
 
-function computeLeaderboard(matches, profiles) {
+const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
+
+function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
   const profileMap = new Map(profiles.map((profile) => [profile.$id, profile]));
   const standings = {};
 
