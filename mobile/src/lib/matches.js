@@ -139,3 +139,11 @@ export const getMatch = async (matchId) => {
     matchId
   );
 };
+
+export const deleteMatch = async (matchId) => {
+  return databases.deleteDocument(
+    appwriteConfig.databaseId,
+    appwriteConfig.matchesCollectionId,
+    matchId
+  );
+};

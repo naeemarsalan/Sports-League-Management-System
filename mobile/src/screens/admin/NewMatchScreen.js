@@ -78,8 +78,8 @@ export const NewMatchScreen = ({ navigation }) => {
           label="Scheduled at (optional)"
           value={scheduledAt}
           onChange={setScheduledAt}
-          mode="datetime"
-          placeholder="Pick a date & time..."
+          mode="time"
+          placeholder="Pick a time..."
         />
         <Button title="Create match" onPress={handleCreate} />
       </Card>

@@ -7,13 +7,14 @@
       "name": "save-push-token",
       "runtime": "node-16.0",
       "entrypoint": "index.js",
+      "commands": "npm install",
       "execute": ["users"],
       "path": "appwrite/functions/save-push-token",
       "variables": {
         "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
         "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
         "APPWRITE_API_KEY": "",
-        "PUSH_PROVIDER_ID": "expo-push"
+        "PUSH_PROVIDER_ID": "apns-push"
       }
     },
     {
@@ -21,13 +22,30 @@
       "name": "send-push",
       "runtime": "node-16.0",
       "entrypoint": "index.js",
+      "commands": "npm install",
       "execute": ["users"],
       "path": "appwrite/functions/send-push",
       "variables": {
         "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
         "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
         "APPWRITE_API_KEY": "",
-        "PUSH_PROVIDER_ID": "expo-push"
+        "PUSH_PROVIDER_ID": "apns-push",
+        "APPWRITE_DATABASE_ID": "pool-league",
+        "APPWRITE_PROFILES_COLLECTION_ID": "profiles"
+      }
+    },
+    {
+      "$id": "migrate-matches",
+      "name": "migrate-matches",
+      "runtime": "node-16.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/migrate-matches",
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": ""
       }
     }
   ]

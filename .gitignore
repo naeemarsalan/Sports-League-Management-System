@@ -161,3 +161,15 @@ cython_debug/
 
 # Appwrite function dependencies
 appwrite/functions/*/node_modules/
+
+# Security scanning reports
+bandit-report.json
+trivy-report.json
+gitleaks-report.json
+
+# MCP configuration (may contain API keys)
+.mcp.json
+
+# Environment files
+.env.*
+!.env.example

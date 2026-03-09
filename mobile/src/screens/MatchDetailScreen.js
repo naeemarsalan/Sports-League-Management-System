@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DatePicker } from "../components/DatePicker";
@@ -87,33 +87,38 @@ export const MatchDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <Screen edges={[]}>
-      <SectionHeader title="Match details" subtitle={`${player1} vs ${player2}`} />
-      <Card>
-        <Text style={styles.label}>Week commencing</Text>
-        <Text style={styles.value}>{match.weekCommencing?.slice(0, 10)}</Text>
-        <Text style={styles.label}>Scheduled at</Text>
-        <Text style={styles.value}>{match.scheduledAt ? formatDateTime(match.scheduledAt) : "Not scheduled"}</Text>
-      </Card>
-      <Card>
-        <Text style={styles.section}>Schedule match</Text>
-        <DatePicker
-          label="Scheduled date & time"
-          value={scheduledAt}
-          onChange={setScheduledAt}
-          mode="datetime"
-          placeholder="Pick a date & time..."
-        />
-        <Button title="Update schedule" onPress={handleSchedule} disabled={!canEdit} />
-      </Card>
-      <Card>
-        <Text style={styles.section}>Enter score</Text>
-        <Input label={`${player1} score`} value={score1} onChangeText={setScore1} placeholder="0" />
-        <Input label={`${player2} score`} value={score2} onChangeText={setScore2} placeholder="0" />
-        <Button title="Submit score" onPress={handleScore} disabled={!canEdit} />
-      </Card>
-      {!canEdit ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
-    </Screen>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Screen edges={[]}>
+        <SectionHeader title="Match details" subtitle={`${player1} vs ${player2}`} />
+        <Card>
+          <Text style={styles.label}>Week commencing</Text>
+          <Text style={styles.value}>{match.weekCommencing?.slice(0, 10)}</Text>
+          <Text style={styles.label}>Scheduled at</Text>
+          <Text style={styles.value}>{match.scheduledAt ? formatDateTime(match.scheduledAt) : "Not scheduled"}</Text>
+        </Card>
+        <Card>
+          <Text style={styles.section}>Schedule match</Text>
+          <DatePicker
+            label="Scheduled date & time"
+            value={scheduledAt}
+            onChange={setScheduledAt}
+            mode="datetime"
+            placeholder="Pick a date & time..."
+          />
+          <Button title="Update schedule" onPress={handleSchedule} disabled={!canEdit} />
+        </Card>
+        <Card>
+          <Text style={styles.section}>Enter score</Text>
+          <Input label={`${player1} score`} value={score1} onChangeText={setScore1} placeholder="0" />
+          <Input label={`${player2} score`} value={score2} onChangeText={setScore2} placeholder="0" />
+          <Button title="Submit score" onPress={handleScore} disabled={!canEdit} />
+        </Card>
+        {!canEdit ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
+      </Screen>
+    </KeyboardAvoidingView>
   );
 };
 

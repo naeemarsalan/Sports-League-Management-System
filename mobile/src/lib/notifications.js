@@ -1,8 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
-import Constants from "expo-constants";
-import { functions, appwriteConfig } from "./appwrite";
+import { functions } from "./appwrite";
 
 // Configure notification handler for foreground notifications
 Notifications.setNotificationHandler({
@@ -40,11 +39,8 @@ export const registerForPushNotifications = async () => {
   }
 
   try {
-    // Get Expo push token
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId || appwriteConfig.projectId;
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
+    // Get native APNs/FCM device token (not Expo wrapper token)
+    const tokenData = await Notifications.getDevicePushTokenAsync();
 
     // Configure Android notification channel
     if (Platform.OS === "android") {
@@ -119,8 +115,8 @@ export const addNotificationListeners = (onNotificationReceived, onNotificationR
 
   // Return cleanup function
   return () => {
-    Notifications.removeNotificationSubscription(receivedSubscription);
-    Notifications.removeNotificationSubscription(responseSubscription);
+    receivedSubscription.remove();
+    responseSubscription.remove();
   };
 };
 

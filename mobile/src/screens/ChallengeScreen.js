@@ -185,8 +185,8 @@ export const ChallengeScreen = ({ navigation }) => {
             label="Scheduled time (optional)"
             value={scheduledAt}
             onChange={setScheduledAt}
-            mode="datetime"
-            placeholder="Pick a date & time..."
+            mode="time"
+            placeholder="Pick a time..."
           />
           <View style={styles.buttonRow}>
             <Pressable onPress={() => setStep(1)} style={styles.backButton}>

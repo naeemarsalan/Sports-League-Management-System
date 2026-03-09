@@ -3,6 +3,7 @@ const mockCreateDocument = jest.fn();
 const mockListDocuments = jest.fn();
 const mockUpdateDocument = jest.fn();
 const mockGetDocument = jest.fn();
+const mockDeleteDocument = jest.fn();
 const mockCreateExecution = jest.fn();
 
 jest.mock("../appwrite", () => {
@@ -13,6 +14,7 @@ jest.mock("../appwrite", () => {
       listDocuments: (...args) => mockListDocuments(...args),
       updateDocument: (...args) => mockUpdateDocument(...args),
       getDocument: (...args) => mockGetDocument(...args),
+      deleteDocument: (...args) => mockDeleteDocument(...args),
     },
     functions: {
       createExecution: (...args) => mockCreateExecution(...args),
@@ -29,7 +31,7 @@ jest.mock("../appwrite", () => {
 });
 
 const { Permission, Role } = require("appwrite");
-const { createMatch, listMatches, updateMatch } = require("../matches");
+const { createMatch, listMatches, updateMatch, deleteMatch } = require("../matches");
 
 // ---- Helpers ----
 beforeEach(() => {
@@ -161,5 +163,22 @@ describe("updateMatch", () => {
     await new Promise((r) => setTimeout(r, 0));
 
     expect(mockCreateExecution).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---- deleteMatch ----
+describe("deleteMatch", () => {
+  it("calls deleteDocument with correct args", async () => {
+    mockDeleteDocument.mockResolvedValue({});
+
+    await deleteMatch("m1");
+
+    expect(mockDeleteDocument).toHaveBeenCalledWith("test-db", "matches", "m1");
+  });
+
+  it("throws when deleteDocument fails", async () => {
+    mockDeleteDocument.mockRejectedValue(new Error("Not authorized"));
+
+    await expect(deleteMatch("m1")).rejects.toThrow("Not authorized");
   });
 });

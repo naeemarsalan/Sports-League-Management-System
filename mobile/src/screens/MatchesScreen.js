@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -7,13 +8,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { listMatches } from "../lib/matches";
+import { listMatches, deleteMatch } from "../lib/matches";
 import { listProfiles } from "../lib/profiles";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
@@ -33,7 +34,7 @@ const PillTab = ({ label, active, onPress }) => (
   </Pressable>
 );
 
-const MatchRow = ({ match, playersById, onPress }) => {
+const MatchRow = ({ match, playersById, onPress, onDelete, canDelete }) => {
   const player1 = playersById[match.player1Id]?.displayName ?? "Player 1";
   const player2 = playersById[match.player2Id]?.displayName ?? "Player 2";
   const hasScore = match.scorePlayer1 !== null && match.scorePlayer2 !== null;
@@ -66,9 +67,17 @@ const MatchRow = ({ match, playersById, onPress }) => {
               RESULT: {match.scorePlayer1}-{match.scorePlayer2}
             </Text>
           </View>
-        ) : (
-          <Ionicons name="close" size={20} color={colors.textMuted} />
-        )}
+        ) : canDelete ? (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={20} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -77,7 +86,32 @@ const MatchRow = ({ match, playersById, onPress }) => {
 export const MatchesScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
   const { currentLeagueId, currentLeague } = useLeagueStore();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("upcoming");
+
+  const canDeleteMatch = (match) => {
+    if (!profile) return false;
+    return profile.role === "admin" || profile.$id === match.player1Id || profile.$id === match.player2Id;
+  };
+
+  const handleDelete = (matchId) => {
+    Alert.alert("Delete match?", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteMatch(matchId);
+            queryClient.invalidateQueries(["matches"]);
+          } catch (error) {
+            console.error("deleteMatch failed:", error);
+            Alert.alert("Error", error.message || "Failed to delete match.");
+          }
+        },
+      },
+    ]);
+  };
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
@@ -140,6 +174,8 @@ export const MatchesScreen = ({ navigation }) => {
           <MatchRow
             match={item}
             playersById={playersById}
+            canDelete={canDeleteMatch(item)}
+            onDelete={() => handleDelete(item.$id)}
             onPress={() => {
               Haptics.selectionAsync();
               navigation.navigate("MatchDetail", { match: item, playersById });

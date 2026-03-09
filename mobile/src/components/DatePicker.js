@@ -26,12 +26,14 @@ export const DatePicker = ({
 }) => {
   const [show, setShow] = useState(false);
   // For datetime mode: after picking date, pick time
-  const [pickerMode, setPickerMode] = useState(mode === "datetime" ? "date" : "date");
+  const [pickerMode, setPickerMode] = useState(mode === "datetime" ? "date" : mode);
 
   const displayText = value
     ? mode === "datetime"
       ? formatDateTime(value)
-      : formatDate(value)
+      : mode === "time"
+        ? value.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        : formatDate(value)
     : placeholder;
 
   const handlePress = () => {

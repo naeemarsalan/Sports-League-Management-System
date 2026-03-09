@@ -1,10 +1,14 @@
 const fetch = require("node-fetch");
 
 /**
- * Migration function to assign leagueId to old matches that don't have one.
+ * Migration function for matches collection.
  *
- * Usage: Call with body { "defaultLeagueId": "your-league-id" }
- * This function is idempotent - safe to run multiple times.
+ * Modes:
+ * 1. Assign leagueId: { "defaultLeagueId": "your-league-id" }
+ * 2. Fix permissions: { "fixPermissions": true }
+ *    Adds read/update/delete for Role.users() to all match documents.
+ *
+ * Both modes are idempotent - safe to run multiple times.
  */
 module.exports = async ({ req, res, log, error }) => {
   const endpoint = process.env.APPWRITE_ENDPOINT;
@@ -21,12 +25,13 @@ module.exports = async ({ req, res, log, error }) => {
   }
 
   const defaultLeagueId = body.defaultLeagueId;
+  const fixPermissions = body.fixPermissions === true;
 
-  if (!defaultLeagueId) {
-    error("defaultLeagueId is required in request body");
+  if (!defaultLeagueId && !fixPermissions) {
+    error("defaultLeagueId or fixPermissions is required in request body");
     return res.json({
       success: false,
-      error: "defaultLeagueId required in request body. Example: { \"defaultLeagueId\": \"your-league-id\" }"
+      error: "Provide either { \"defaultLeagueId\": \"your-league-id\" } or { \"fixPermissions\": true }"
     }, 400);
   }
 
@@ -50,7 +55,14 @@ module.exports = async ({ req, res, log, error }) => {
   let errors = [];
   const LIMIT = 100;
 
-  log(`Starting migration with defaultLeagueId: ${defaultLeagueId}`);
+  const REQUIRED_PERMISSIONS = [
+    "read(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")",
+  ];
+
+  const mode = fixPermissions ? "fixPermissions" : "leagueId";
+  log(`Starting migration in mode: ${mode}`);
 
   try {
     while (true) {
@@ -74,7 +86,38 @@ module.exports = async ({ req, res, log, error }) => {
       log(`Processing batch at offset ${offset}, found ${data.documents.length} documents`);
 
       for (const doc of data.documents) {
-        if (!doc.leagueId) {
+        if (fixPermissions) {
+          // Check if document already has all required permissions
+          const existing = doc.$permissions || [];
+          const missing = REQUIRED_PERMISSIONS.filter((p) => !existing.includes(p));
+
+          if (missing.length === 0) {
+            skipped++;
+            continue;
+          }
+
+          try {
+            const merged = [...new Set([...existing, ...REQUIRED_PERMISSIONS])];
+            const updateUrl = `${endpoint}/databases/${databaseId}/collections/${matchesCollection}/documents/${doc.$id}`;
+            const updateRes = await fetch(updateUrl, {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({ $permissions: merged }),
+            });
+
+            if (updateRes.ok) {
+              updated++;
+              log(`Fixed permissions on match ${doc.$id} (added: ${missing.join(", ")})`);
+            } else {
+              const errText = await updateRes.text();
+              errors.push({ docId: doc.$id, error: errText });
+              error(`Failed to update ${doc.$id}: ${errText}`);
+            }
+          } catch (updateErr) {
+            errors.push({ docId: doc.$id, error: updateErr.message });
+            error(`Error updating ${doc.$id}: ${updateErr.message}`);
+          }
+        } else if (!doc.leagueId) {
           try {
             const updateUrl = `${endpoint}/databases/${databaseId}/collections/${matchesCollection}/documents/${doc.$id}`;
             const updateRes = await fetch(updateUrl, {
@@ -110,6 +153,7 @@ module.exports = async ({ req, res, log, error }) => {
 
     return res.json({
       success: true,
+      mode,
       matchesUpdated: updated,
       matchesSkipped: skipped,
       errors: errors.length > 0 ? errors : undefined,

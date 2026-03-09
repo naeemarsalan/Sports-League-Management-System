@@ -9,7 +9,7 @@ module.exports = async ({ req, res, log, error }) => {
   const endpoint = process.env.APPWRITE_ENDPOINT;
   const projectId = process.env.APPWRITE_PROJECT_ID;
   const apiKey = process.env.APPWRITE_API_KEY;
-  const providerId = process.env.PUSH_PROVIDER_ID || "expo-push";
+  const providerId = process.env.PUSH_PROVIDER_ID || "apns-push";
 
   if (!endpoint || !projectId || !apiKey) {
     error("Missing required environment variables");
@@ -27,6 +27,13 @@ module.exports = async ({ req, res, log, error }) => {
 
   if (!userId || !token) {
     return res.json({ success: false, error: "userId and token are required" }, 400);
+  }
+
+  // Verify the caller is the same user they claim to be
+  const authenticatedUserId = req.headers["x-appwrite-user-id"];
+  if (authenticatedUserId && authenticatedUserId !== userId) {
+    error(`userId mismatch: authenticated as ${authenticatedUserId}, but requested ${userId}`);
+    return res.json({ success: false, error: "userId does not match authenticated user" }, 403);
   }
 
   const headers = {
@@ -60,7 +67,8 @@ module.exports = async ({ req, res, log, error }) => {
     }
 
     // Create new target
-    const targetId = `target_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const crypto = require("crypto");
+    const targetId = `target_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").substr(0, 9)}`;
     const createUrl = `${endpoint}/users/${userId}/targets`;
     const createRes = await fetch(createUrl, {
       method: "POST",
