@@ -6,7 +6,6 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { DatePicker } from "../../components/DatePicker";
 import { Screen } from "../../components/Screen";
-import { SectionHeader } from "../../components/SectionHeader";
 import { createMatch } from "../../lib/matches";
 import { listProfiles } from "../../lib/profiles";
 import { colors } from "../../theme/colors";
@@ -47,7 +46,6 @@ export const NewMatchScreen = ({ navigation }) => {
 
   return (
     <Screen>
-      <SectionHeader title="Create Match" subtitle="Schedule a new fixture." />
       <Card>
         <Text style={styles.label}>Player 1</Text>
         <View style={styles.pickerWrap}>

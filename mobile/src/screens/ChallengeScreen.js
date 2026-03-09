@@ -20,7 +20,7 @@ import { createMatch } from "../lib/matches";
 import { getLeagueMemberProfiles } from "../lib/members";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
-import { useLeagueStore } from "../state/useLeagueStore";
+import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
 
 /** Returns the next Monday from today (or today if it is Monday). */
 const getNextMonday = () => {
@@ -34,7 +34,7 @@ const getNextMonday = () => {
 
 export const ChallengeScreen = ({ navigation }) => {
   const { profile } = useAuthStore();
-  const { currentLeagueId, currentLeague } = useLeagueStore();
+  const { currentLeagueId, currentLeague, canPerform } = useLeagueStore();
 
   const { data: leagueProfiles = [], isLoading } = useQuery({
     queryKey: ["leagueProfiles", currentLeagueId],
@@ -129,6 +129,21 @@ export const ChallengeScreen = ({ navigation }) => {
       </Pressable>
     );
   };
+
+  // Permission check — only mod/admin/owner can challenge
+  if (!canPerform(ACTIONS.CREATE_MATCH)) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="lock-closed"
+          title="Permission Denied"
+          message="Only moderators and admins can schedule matches."
+          actionTitle="Go Back"
+          onAction={() => navigation.goBack()}
+        />
+      </Screen>
+    );
+  }
 
   // Show empty state if no league selected
   if (!currentLeagueId) {

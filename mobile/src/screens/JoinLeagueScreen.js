@@ -14,6 +14,7 @@ import { colors } from "../theme/colors";
 
 export const JoinLeagueScreen = ({ navigation }) => {
   const { user, profile } = useAuthStore();
+  const { fetchUserLeagues } = useLeagueStore();
 
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,6 +72,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
     setLoading(true);
     try {
       await requestToJoinLeague(foundLeague.$id, user.$id, profile?.displayName);
+      fetchUserLeagues(user.$id);
 
       Alert.alert(
         "Request Sent!",

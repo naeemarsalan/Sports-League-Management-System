@@ -1,0 +1,9 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/HomePage": "pages/HomePage.js",
+  "/PrivacyPolicyPage": "pages/PrivacyPolicyPage.js",
+  "/SupportPage": "pages/SupportPage.js",
+  "/TermsOfServicePage": "pages/TermsOfServicePage.js",
+  "/_document": "pages/_document.js"
+}

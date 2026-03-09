@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -9,6 +9,8 @@ import {
 import { Dimensions, Platform, UIManager } from "react-native";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { useAuthStore } from "./src/state/useAuthStore";
+import { useLeagueStore } from "./src/state/useLeagueStore";
+import { useNotificationStore } from "./src/state/useNotificationStore";
 import {
   registerForPushNotifications,
   savePushToken,
@@ -17,6 +19,7 @@ import {
 } from "./src/lib/notifications";
 import { navigationRef } from "./src/lib/navigation";
 import { getMatch } from "./src/lib/matches";
+import { NotificationModal } from "./src/components/NotificationModal";
 
 const queryClient = new QueryClient();
 
@@ -54,59 +57,92 @@ const navigateToMatch = async (matchId) => {
   }
 };
 
+const parseNotification = (content, data) => ({
+  type: data?.type || "general",
+  title: content?.title || "",
+  body: content?.body || "",
+  data: data || {},
+});
+
 function NotificationHandler() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const hasRegistered = useRef(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentNotification, setCurrentNotification] = useState(null);
+
+  // Use ref so the listener closures always call the latest version
+  const showNotificationRef = useRef(null);
+  showNotificationRef.current = (content, data) => {
+    console.log("[NotificationHandler] showNotification called:", { title: content?.title, data });
+    const parsed = parseNotification(content, data);
+    const item = useNotificationStore.getState().addNotification(parsed);
+    setCurrentNotification(item);
+    setModalVisible(true);
+
+    // Auto-refresh data when notification arrives
+    queryClient.invalidateQueries({ queryKey: ["matches"] });
+    queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    queryClient.invalidateQueries({ queryKey: ["leagueMembers"] });
+    if (data?.type === "join_approved" && user) {
+      useLeagueStore.getState().fetchUserLeagues(user.$id);
+    }
+  };
 
   useEffect(() => {
-    // Register for push notifications when user logs in
     if (user && !hasRegistered.current) {
       hasRegistered.current = true;
-
       registerForPushNotifications().then((token) => {
         if (token) {
           savePushToken(user.$id, token);
         }
       });
     }
-
-    // Reset registration state on logout
     if (!user) {
       hasRegistered.current = false;
     }
   }, [user]);
 
   useEffect(() => {
-    // Set up notification listeners
     const cleanup = addNotificationListeners(
-      // Called when notification received while app is open
       (notification) => {
-        console.log("Notification received in foreground:", notification.request.content);
+        console.log("[NotificationHandler] Foreground notification received");
+        const { content } = notification.request;
+        showNotificationRef.current(content, content.data);
       },
-      // Called when user taps on a notification
       (response) => {
-        const data = response.notification.request.content.data;
-        console.log("User tapped notification:", data);
-        if (data?.matchId) {
-          navigateToMatch(data.matchId);
-        }
+        console.log("[NotificationHandler] Notification tapped");
+        const { content } = response.notification.request;
+        showNotificationRef.current(content, content.data);
       }
     );
 
-    // Handle cold-start deep linking
     getLastNotificationResponse().then((response) => {
       if (response) {
-        const data = response.notification.request.content.data;
-        if (data?.matchId) {
-          navigateToMatch(data.matchId);
-        }
+        console.log("[NotificationHandler] Cold-start notification found");
+        const { content } = response.notification.request;
+        showNotificationRef.current(content, content.data);
       }
     });
 
     return cleanup;
   }, []);
 
-  return null;
+  const handleAction = (notification) => {
+    setModalVisible(false);
+    if (notification.data?.matchId) {
+      navigateToMatch(notification.data.matchId);
+    }
+  };
+
+  return (
+    <NotificationModal
+      visible={modalVisible}
+      onClose={() => setModalVisible(false)}
+      notification={currentNotification}
+      onAction={handleAction}
+    />
+  );
 }
 
 export default function App() {

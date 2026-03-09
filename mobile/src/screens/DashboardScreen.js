@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useMemo } from "react";
-import { Animated, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
+import { Animated, Pressable, StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -8,11 +8,15 @@ import { Screen } from "../components/Screen";
 import { Avatar } from "../components/Avatar";
 import { LeagueCard } from "../components/LeagueCard";
 import { RoleBadge } from "../components/RoleBadge";
+import { NotificationModal } from "../components/NotificationModal";
+import { NotificationHistoryModal } from "../components/NotificationHistoryModal";
 import { fetchLeaderboard } from "../lib/leaderboard";
 import { listMatches } from "../lib/matches";
+import { getMatch } from "../lib/matches";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
+import { useNotificationStore } from "../state/useNotificationStore";
 
 const ActionButton = ({ icon, label, onPress }) => (
   <Pressable
@@ -42,6 +46,38 @@ export const DashboardScreen = ({ navigation }) => {
     setCurrentLeague,
     canPerform,
   } = useLeagueStore();
+  const queryClient = useQueryClient();
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const markAllRead = useNotificationStore((s) => s.markAllRead);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
+  const handleOpenHistory = useCallback(() => {
+    Haptics.selectionAsync();
+    markAllRead();
+    setHistoryVisible(true);
+  }, [markAllRead]);
+
+  const handleSelectNotification = useCallback((notification) => {
+    setHistoryVisible(false);
+    setSelectedNotification(notification);
+    setDetailModalVisible(true);
+  }, []);
+
+  const handleNotificationAction = useCallback(async (notification) => {
+    setDetailModalVisible(false);
+    if (notification.data?.matchId) {
+      try {
+        const match = await getMatch(notification.data.matchId);
+        navigation.navigate("MatchDetail", { match, playersById: {} });
+      } catch (e) {
+        console.warn("Failed to navigate to match:", e.message);
+      }
+    }
+  }, [navigation]);
 
   // Fetch user's leagues on mount
   useEffect(() => {
@@ -107,6 +143,19 @@ export const DashboardScreen = ({ navigation }) => {
     ]).start();
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        user ? fetchUserLeagues(user.$id) : Promise.resolve(),
+        queryClient.invalidateQueries({ queryKey: ["leaderboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["matches"] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user, fetchUserLeagues, queryClient]);
+
   const canManageMembers = canPerform(ACTIONS.APPROVE_MEMBERS);
   const canCreateMatch = canPerform(ACTIONS.CREATE_MATCH);
 
@@ -115,7 +164,16 @@ export const DashboardScreen = ({ navigation }) => {
   };
 
   return (
-    <Screen>
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.accent}
+          colors={[colors.accent]}
+        />
+      }
+    >
       {/* Welcome Header */}
       <Animated.View
         style={[
@@ -126,15 +184,21 @@ export const DashboardScreen = ({ navigation }) => {
           },
         ]}
       >
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.welcomeName}>
             {profile?.displayName ?? "Player"}
           </Text>
         </View>
-        <Pressable onPress={() => navigation.navigate("Profile")}>
-          <Avatar name={profile?.displayName} size={48} />
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable onPress={handleOpenHistory} style={styles.bellButton}>
+            <Ionicons name={unreadCount > 0 ? "notifications" : "notifications-outline"} size={24} color={colors.textPrimary} />
+            {unreadCount > 0 && <View style={styles.badgeDot} />}
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate("Profile")}>
+            <Avatar name={profile?.displayName} size={48} />
+          </Pressable>
+        </View>
       </Animated.View>
 
       {/* No Leagues State */}
@@ -253,11 +317,6 @@ export const DashboardScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
             <View style={styles.actionsContainer}>
               <ActionButton
-                icon="flash-outline"
-                label="Challenge Player"
-                onPress={() => navigation.navigate("Challenge")}
-              />
-              <ActionButton
                 icon="calendar-outline"
                 label="View Matches"
                 onPress={() => navigation.navigate("Matches")}
@@ -275,6 +334,13 @@ export const DashboardScreen = ({ navigation }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>LEAGUE MANAGEMENT</Text>
               <View style={styles.actionsContainer}>
+                {canCreateMatch && (
+                  <ActionButton
+                    icon="flash-outline"
+                    label="Challenge Player"
+                    onPress={() => navigation.navigate("Challenge")}
+                  />
+                )}
                 {canManageMembers && (
                   <ActionButton
                     icon="people-outline"
@@ -331,6 +397,17 @@ export const DashboardScreen = ({ navigation }) => {
           )}
         </>
       )}
+      <NotificationHistoryModal
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        onSelectNotification={handleSelectNotification}
+      />
+      <NotificationModal
+        visible={detailModalVisible}
+        onClose={() => setDetailModalVisible(false)}
+        notification={selectedNotification}
+        onAction={handleNotificationAction}
+      />
     </Screen>
   );
 };
@@ -341,6 +418,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 24,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  bellButton: {
+    position: "relative",
+    padding: 4,
+  },
+  badgeDot: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: colors.background,
   },
   welcomeText: {
     color: colors.textMuted,

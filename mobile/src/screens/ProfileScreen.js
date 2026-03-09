@@ -22,6 +22,11 @@ export const ProfileScreen = ({ navigation }) => {
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const { data: leaderboard = [] } = useQuery({
     queryKey: ["leaderboard"],
@@ -78,6 +83,36 @@ export const ProfileScreen = ({ navigation }) => {
       Alert.alert("Update failed", error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword) {
+      Alert.alert("Error", "Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "New password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New passwords do not match.");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await account.updatePassword(newPassword, currentPassword);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Success", "Your password has been updated.");
+      setShowChangePassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Failed", error.message || "Could not update password.");
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -252,6 +287,49 @@ export const ProfileScreen = ({ navigation }) => {
               title={saving ? "Saving..." : "Save"}
               onPress={handleSaveName}
               disabled={saving}
+            />
+          </View>
+        )}
+
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => setShowChangePassword(!showChangePassword)}
+        >
+          <Text style={styles.menuItemText}>Change Password</Text>
+          <Ionicons
+            name={showChangePassword ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textMuted}
+          />
+        </Pressable>
+
+        {showChangePassword && (
+          <View style={styles.editNameBox}>
+            <Input
+              label="Current Password"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Enter current password"
+              secureTextEntry
+            />
+            <Input
+              label="New Password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="Min 8 characters"
+              secureTextEntry
+            />
+            <Input
+              label="Confirm New Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Re-enter new password"
+              secureTextEntry
+            />
+            <Button
+              title={savingPassword ? "Updating..." : "Update Password"}
+              onPress={handleChangePassword}
+              disabled={savingPassword}
             />
           </View>
         )}
