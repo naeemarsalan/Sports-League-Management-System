@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 import { SectionHeader } from "../components/SectionHeader";
 import { useAuthStore } from "../state/useAuthStore";
 import { useLeagueStore } from "../state/useLeagueStore";
-import { createLeague } from "../lib/leagues";
+import { createLeague, SCORING_DEFAULTS } from "../lib/leagues";
 import { colors } from "../theme/colors";
 
 export const CreateLeagueScreen = ({ navigation }) => {
@@ -16,6 +17,10 @@ export const CreateLeagueScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [pointsPerWin, setPointsPerWin] = useState(SCORING_DEFAULTS.pointsPerWin.toString());
+  const [pointsPerDraw, setPointsPerDraw] = useState(SCORING_DEFAULTS.pointsPerDraw.toString());
+  const [pointsPerLoss, setPointsPerLoss] = useState(SCORING_DEFAULTS.pointsPerLoss.toString());
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -28,12 +33,23 @@ export const CreateLeagueScreen = ({ navigation }) => {
       return;
     }
 
+    const parsedWin = parseInt(pointsPerWin, 10);
+    const parsedDraw = parseInt(pointsPerDraw, 10);
+    const parsedLoss = parseInt(pointsPerLoss, 10);
+    if (isNaN(parsedWin) || isNaN(parsedDraw) || isNaN(parsedLoss)) {
+      Alert.alert("Error", "Scoring values must be valid integers");
+      return;
+    }
+
     setLoading(true);
     try {
       const league = await createLeague({
         name: name.trim(),
         description: description.trim(),
         createdBy: user.$id,
+        pointsPerWin: parsedWin,
+        pointsPerDraw: parsedDraw,
+        pointsPerLoss: parsedLoss,
       });
 
       // Refresh user's leagues and set this as current
@@ -82,6 +98,42 @@ export const CreateLeagueScreen = ({ navigation }) => {
           autoCapitalize="sentences"
         />
 
+        <Pressable
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvanced(!showAdvanced)}
+        >
+          <Text style={styles.advancedToggleText}>Advanced Settings</Text>
+          <Ionicons
+            name={showAdvanced ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textMuted}
+          />
+        </Pressable>
+
+        {showAdvanced && (
+          <View style={styles.advancedSection}>
+            <Text style={styles.advancedLabel}>Scoring Rules</Text>
+            <Input
+              label="Points per Win"
+              value={pointsPerWin}
+              onChangeText={setPointsPerWin}
+              keyboardType="number-pad"
+            />
+            <Input
+              label="Points per Draw"
+              value={pointsPerDraw}
+              onChangeText={setPointsPerDraw}
+              keyboardType="number-pad"
+            />
+            <Input
+              label="Points per Loss"
+              value={pointsPerLoss}
+              onChangeText={setPointsPerLoss}
+              keyboardType="default"
+            />
+          </View>
+        )}
+
         <View style={styles.info}>
           <Text style={styles.infoTitle}>What happens next?</Text>
           <Text style={styles.infoText}>
@@ -114,6 +166,35 @@ export const CreateLeagueScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   form: {
     flex: 1,
+  },
+  advancedToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+  },
+  advancedToggleText: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  advancedSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  advancedLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 12,
+    letterSpacing: 0.5,
   },
   info: {
     backgroundColor: colors.surface,

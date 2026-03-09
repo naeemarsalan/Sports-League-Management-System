@@ -18,7 +18,7 @@ import { Card } from "../components/Card";
 import { RoleBadge } from "../components/RoleBadge";
 import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
 import { useAuthStore } from "../state/useAuthStore";
-import { updateLeague, regenerateInviteCode, deleteLeague } from "../lib/leagues";
+import { updateLeague, regenerateInviteCode, deleteLeague, SCORING_DEFAULTS } from "../lib/leagues";
 import { leaveLeague, getMembership } from "../lib/members";
 import { colors } from "../theme/colors";
 
@@ -36,6 +36,9 @@ export const LeagueSettingsScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [notifLimit, setNotifLimit] = useState((currentLeague?.notificationLimit || 50).toString());
+  const [pointsPerWin, setPointsPerWin] = useState((currentLeague?.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin).toString());
+  const [pointsPerDraw, setPointsPerDraw] = useState((currentLeague?.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw).toString());
+  const [pointsPerLoss, setPointsPerLoss] = useState((currentLeague?.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss).toString());
   const [loading, setLoading] = useState(false);
 
   const canEdit = canPerform(ACTIONS.EDIT_LEAGUE_SETTINGS);
@@ -47,6 +50,9 @@ export const LeagueSettingsScreen = ({ navigation }) => {
       setName(currentLeague.name);
       setDescription(currentLeague.description || "");
       setNotifLimit((currentLeague.notificationLimit || 50).toString());
+      setPointsPerWin((currentLeague.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin).toString());
+      setPointsPerDraw((currentLeague.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw).toString());
+      setPointsPerLoss((currentLeague.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss).toString());
     }
   }, [currentLeague]);
 
@@ -56,12 +62,23 @@ export const LeagueSettingsScreen = ({ navigation }) => {
       return;
     }
 
+    const parsedWin = parseInt(pointsPerWin, 10);
+    const parsedDraw = parseInt(pointsPerDraw, 10);
+    const parsedLoss = parseInt(pointsPerLoss, 10);
+    if (isNaN(parsedWin) || isNaN(parsedDraw) || isNaN(parsedLoss)) {
+      Alert.alert("Error", "Scoring values must be valid integers");
+      return;
+    }
+
     setLoading(true);
     try {
       await updateLeague(currentLeague.$id, {
         name: name.trim(),
         description: description.trim(),
         notificationLimit: parseInt(notifLimit, 10) || 50,
+        pointsPerWin: parsedWin,
+        pointsPerDraw: parsedDraw,
+        pointsPerLoss: parsedLoss,
       });
       await refreshCurrentLeague();
       Alert.alert("Saved", "League settings updated");
@@ -225,6 +242,37 @@ export const LeagueSettingsScreen = ({ navigation }) => {
             onChangeText={setNotifLimit}
             keyboardType="number-pad"
           />
+        </View>
+      )}
+
+      {/* Scoring Rules (admins only) */}
+      {canEdit && (
+        <Card style={styles.scoringCard}>
+          <Text style={styles.cardTitle}>Scoring Rules</Text>
+          <Input
+            label="Points per Win"
+            value={pointsPerWin}
+            onChangeText={setPointsPerWin}
+            keyboardType="number-pad"
+          />
+          <Input
+            label="Points per Draw"
+            value={pointsPerDraw}
+            onChangeText={setPointsPerDraw}
+            keyboardType="number-pad"
+          />
+          <Input
+            label="Points per Loss"
+            value={pointsPerLoss}
+            onChangeText={setPointsPerLoss}
+            keyboardType="default"
+          />
+        </Card>
+      )}
+
+      {/* Save button */}
+      {canEdit && (
+        <View style={styles.form}>
           <Button
             title={loading ? "Saving..." : "Save Changes"}
             onPress={handleSave}
@@ -270,6 +318,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   inviteCard: {
+    marginBottom: 20,
+  },
+  scoringCard: {
     marginBottom: 20,
   },
   cardTitle: {

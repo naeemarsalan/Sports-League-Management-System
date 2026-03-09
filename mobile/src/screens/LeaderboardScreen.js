@@ -6,6 +6,7 @@ import { Screen } from "../components/Screen";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { fetchLeaderboard } from "../lib/leaderboard";
+import { getScoringConfig } from "../lib/leagues";
 import { useLeagueStore } from "../state/useLeagueStore";
 import { colors } from "../theme/colors";
 
@@ -61,10 +62,11 @@ const LeaderboardRow = ({ item, index }) => {
 
 export const LeaderboardScreen = () => {
   const { currentLeagueId, currentLeague } = useLeagueStore();
+  const scoringConfig = getScoringConfig(currentLeague);
 
   const { data = [], refetch, isFetching, isLoading, isError, error } = useQuery({
-    queryKey: ["leaderboard", currentLeagueId],
-    queryFn: () => fetchLeaderboard(currentLeagueId),
+    queryKey: ["leaderboard", currentLeagueId, scoringConfig],
+    queryFn: () => fetchLeaderboard(currentLeagueId, scoringConfig),
     retry: 2,
     enabled: !!currentLeagueId,
   });

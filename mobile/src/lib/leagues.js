@@ -1,5 +1,16 @@
 import { databases, ID, Query, appwriteConfig } from "./appwrite";
 
+export const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
+
+/**
+ * Read scoring config from a league document, falling back to defaults
+ */
+export const getScoringConfig = (league) => ({
+  pointsPerWin: league?.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
+  pointsPerDraw: league?.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
+  pointsPerLoss: league?.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
+});
+
 /**
  * Generate a random 6-character invite code
  */
@@ -15,7 +26,7 @@ export const generateInviteCode = () => {
 /**
  * Create a new league
  */
-export const createLeague = async ({ name, description, createdBy }) => {
+export const createLeague = async ({ name, description, createdBy, pointsPerWin, pointsPerDraw, pointsPerLoss }) => {
   const inviteCode = generateInviteCode();
 
   const league = await databases.createDocument(
@@ -30,6 +41,9 @@ export const createLeague = async ({ name, description, createdBy }) => {
       createdAt: new Date().toISOString(),
       isActive: true,
       memberCount: 1,
+      pointsPerWin: pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
+      pointsPerDraw: pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
+      pointsPerLoss: pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
     }
   );
 

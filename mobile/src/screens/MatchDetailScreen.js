@@ -8,14 +8,18 @@ import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { updateMatch } from "../lib/matches";
 import { fetchLeaderboard, notifyOvertakenPlayers } from "../lib/leaderboard";
+import { getScoringConfig } from "../lib/leagues";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
+import { useLeagueStore } from "../state/useLeagueStore";
 
 const formatDateTime = (value) => (value ? value.replace("T", " ").slice(0, 16) : "");
 
 export const MatchDetailScreen = ({ route, navigation }) => {
   const { profile } = useAuthStore();
+  const { currentLeague } = useLeagueStore();
   const { match, playersById } = route.params;
+  const scoringConfig = getScoringConfig(currentLeague);
 
   const [scheduledAt, setScheduledAt] = useState(
     match.scheduledAt ? new Date(match.scheduledAt) : null
@@ -69,7 +73,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
     try {
       // Capture leaderboard before score submission
       const leagueId = match.leagueId;
-      const beforeBoard = leagueId ? await fetchLeaderboard(leagueId) : [];
+      const beforeBoard = leagueId ? await fetchLeaderboard(leagueId, scoringConfig) : [];
 
       await updateMatch(match.$id, {
         scorePlayer1: parsedScore1,
@@ -89,7 +93,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
 
       // Capture leaderboard after and notify overtaken players (fire-and-forget)
       if (leagueId && beforeBoard.length > 0) {
-        fetchLeaderboard(leagueId).then((afterBoard) => {
+        fetchLeaderboard(leagueId, scoringConfig).then((afterBoard) => {
           notifyOvertakenPlayers(beforeBoard, afterBoard, leagueId);
         }).catch(() => {});
       }

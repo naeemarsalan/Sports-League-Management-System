@@ -1,14 +1,16 @@
 import { databases, Query, appwriteConfig } from "./appwrite";
 import { getLeagueMembers } from "./members";
 import { sendPushNotification } from "./notifications";
+import { SCORING_DEFAULTS } from "./leagues";
 
 /**
  * Compute leaderboard standings from matches and profiles locally
  * This avoids dependency on the serverless function
  * @param {string} leagueId - The league ID to compute standings for (optional for backwards compatibility)
  */
-export const fetchLeaderboard = async (leagueId = null) => {
+export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) => {
   try {
+    const scoring = scoringConfig ?? SCORING_DEFAULTS;
     // Build queries for matches - only filter by leagueId if provided and valid
     const matchQueries = [Query.equal("isCompleted", true), Query.limit(500)];
 
@@ -149,17 +151,19 @@ export const fetchLeaderboard = async (leagueId = null) => {
       // Determine winner and update stats
       if (scorePlayer1 > scorePlayer2) {
         standings[key1].wins += 1;
-        standings[key1].points += 3;
+        standings[key1].points += scoring.pointsPerWin;
         standings[key2].losses += 1;
+        standings[key2].points += scoring.pointsPerLoss;
       } else if (scorePlayer2 > scorePlayer1) {
         standings[key2].wins += 1;
-        standings[key2].points += 3;
+        standings[key2].points += scoring.pointsPerWin;
         standings[key1].losses += 1;
+        standings[key1].points += scoring.pointsPerLoss;
       } else {
         standings[key1].draws += 1;
-        standings[key1].points += 1;
+        standings[key1].points += scoring.pointsPerDraw;
         standings[key2].draws += 1;
-        standings[key2].points += 1;
+        standings[key2].points += scoring.pointsPerDraw;
       }
     });
 

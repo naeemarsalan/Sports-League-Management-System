@@ -11,6 +11,7 @@ import { RoleBadge } from "../components/RoleBadge";
 import { NotificationModal } from "../components/NotificationModal";
 import { NotificationHistoryModal } from "../components/NotificationHistoryModal";
 import { fetchLeaderboard } from "../lib/leaderboard";
+import { getScoringConfig } from "../lib/leagues";
 import { listMatches } from "../lib/matches";
 import { getMatch } from "../lib/matches";
 import { colors } from "../theme/colors";
@@ -87,9 +88,10 @@ export const DashboardScreen = ({ navigation }) => {
   }, [user]);
 
   // Fetch leaderboard for current league
+  const scoringConfig = getScoringConfig(currentLeague);
   const { data: leaderboard = [] } = useQuery({
-    queryKey: ["leaderboard", currentLeagueId],
-    queryFn: () => fetchLeaderboard(currentLeagueId),
+    queryKey: ["leaderboard", currentLeagueId, scoringConfig],
+    queryFn: () => fetchLeaderboard(currentLeagueId, scoringConfig),
     enabled: !!profile && !!currentLeagueId,
   });
 
