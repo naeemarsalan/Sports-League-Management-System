@@ -1,0 +1,24 @@
+title = "Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "appwrite-api-key"
+description = "Appwrite API Key"
+regex = '''standard_[a-f0-9]{64,}'''
+tags = ["key", "appwrite"]
+
+[allowlist]
+paths = [
+  '''\.env\.example$''',
+  '''node_modules/''',
+  '''\.expo/''',
+  '''test/fixtures/''',
+  '''.*\.lock$''',
+  '''.*\.png$''',
+  '''.*\.jpg$''',
+  '''.*\.jpeg$''',
+  '''.*\.gif$''',
+  '''.*\.ico$''',
+]

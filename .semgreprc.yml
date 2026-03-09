@@ -1,0 +1,44 @@
+rules:
+  - id: insecure-random
+    patterns:
+      - pattern: Math.random()
+    message: >
+      Math.random() is not cryptographically secure. Use crypto.randomUUID(),
+      crypto.getRandomValues(), or expo-crypto for security-sensitive operations.
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      cwe: "CWE-338: Use of Cryptographically Weak PRNG"
+
+  - id: unsanitized-notification-data
+    patterns:
+      - pattern: |
+          `... ${$DATA. ...} ...`
+        metavariable-regex:
+          metavariable: $DATA
+          regex: (data|body|req\.body|params)
+    message: >
+      User-provided data is interpolated into a notification without sanitization.
+      Sanitize inputs to prevent injection attacks.
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input"
+
+  - id: missing-userid-verification
+    patterns:
+      - pattern: |
+          const { ..., userId, ... } = $BODY;
+          ...
+          $FN($URL_EXPR, ...);
+      - pattern-not-inside: |
+          ...
+          if (<... req.headers["x-appwrite-user-id"] ...>) { ... }
+          ...
+    message: >
+      userId extracted from request body is used without verifying it matches
+      the authenticated user (x-appwrite-user-id header).
+    languages: [javascript]
+    severity: ERROR
+    metadata:
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
