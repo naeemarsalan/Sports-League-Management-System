@@ -50,14 +50,14 @@ export const RegisterScreen = ({ navigation }) => {
             I am at least 13 years old and agree to the{" "}
             <Text
               style={{ color: colors.accent, textDecorationLine: "underline" }}
-              onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/terms")}
+              onPress={() => Linking.openURL("http://www.snookerpoolleague.co.uk/terms")}
             >
               Terms of Service
             </Text>
             {" "}and{" "}
             <Text
               style={{ color: colors.accent, textDecorationLine: "underline" }}
-              onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/privacy")}
+              onPress={() => Linking.openURL("http://www.snookerpoolleague.co.uk/privacy")}
             >
               Privacy Policy
             </Text>.
@@ -74,7 +74,7 @@ export const RegisterScreen = ({ navigation }) => {
           Already registered? <Text style={{ color: colors.accent }}>Sign in</Text>
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/support")} style={{ marginTop: 12 }}>
+      <TouchableOpacity onPress={() => Linking.openURL("http://www.snookerpoolleague.co.uk/support")} style={{ marginTop: 12 }}>
         <Text style={{ color: colors.textMuted, fontSize: 13 }}>
           Need help? <Text style={{ color: colors.accent, textDecorationLine: "underline" }}>Contact Support</Text>
         </Text>

@@ -10,17 +10,18 @@ import { getScoringConfig } from "../lib/leagues";
 import { useLeagueStore } from "../state/useLeagueStore";
 import { colors } from "../theme/colors";
 
-const TableHeader = () => (
+const TableHeader = ({ showFrames }) => (
   <View style={styles.tableHeader}>
     <Text style={[styles.headerCell, styles.rankCol]}>RANK</Text>
     <Text style={[styles.headerCell, styles.playerCol]}>PLAYER</Text>
     <Text style={[styles.headerCell, styles.statCol]}>W</Text>
     <Text style={[styles.headerCell, styles.statCol]}>L</Text>
+    {showFrames && <Text style={[styles.headerCell, styles.statCol]}>F</Text>}
     <Text style={[styles.headerCell, styles.ptsCol]}>PTS</Text>
   </View>
 );
 
-const LeaderboardRow = ({ item, index }) => {
+const LeaderboardRow = ({ item, index, showFrames }) => {
   const rank = index + 1;
   const isFirst = rank === 1;
 
@@ -52,6 +53,13 @@ const LeaderboardRow = ({ item, index }) => {
         <Text style={styles.statText}>{item.losses}</Text>
       </View>
 
+      {/* Frames Won */}
+      {showFrames && (
+        <View style={[styles.cell, styles.statCol]}>
+          <Text style={styles.statText}>{item.framesWon}</Text>
+        </View>
+      )}
+
       {/* Points */}
       <View style={[styles.cell, styles.ptsCol]}>
         <Text style={[styles.ptsText, isFirst && styles.firstPts]}>{item.points}</Text>
@@ -63,6 +71,8 @@ const LeaderboardRow = ({ item, index }) => {
 export const LeaderboardScreen = () => {
   const { currentLeagueId, currentLeague } = useLeagueStore();
   const scoringConfig = getScoringConfig(currentLeague);
+
+  const showFrames = currentLeague?.includeFramePoints === true;
 
   const { data = [], refetch, isFetching, isLoading, isError, error } = useQuery({
     queryKey: ["leaderboard", currentLeagueId, scoringConfig],
@@ -92,12 +102,12 @@ export const LeaderboardScreen = () => {
       <Text style={styles.screenTitle}>STANDINGS</Text>
 
       <View style={styles.tableContainer}>
-        <TableHeader />
+        <TableHeader showFrames={showFrames} />
         <FlatList
           data={data}
           keyExtractor={(item, index) => item.playerId || `row-${index}`}
           renderItem={({ item, index }) => (
-            <LeaderboardRow item={item} index={index} />
+            <LeaderboardRow item={item} index={index} showFrames={showFrames} />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

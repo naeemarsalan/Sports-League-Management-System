@@ -49,12 +49,13 @@ function ensureStanding(state, playerId, name) {
       draws: 0,
       losses: 0,
       points: 0,
+      framesWon: 0,
     };
   }
   return state[playerId];
 }
 
-const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
+const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0, includeFramePoints: false };
 
 function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
   const profileMap = new Map(profiles.map((profile) => [profile.$id, profile]));
@@ -81,19 +82,29 @@ function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
       entry1.gamesPlayed += 1;
       entry2.gamesPlayed += 1;
 
+      entry1.framesWon += score1;
+      entry2.framesWon += score2;
+
       if (score1 > score2) {
         entry1.wins += 1;
         entry2.losses += 1;
-        entry1.points += 3;
+        entry1.points += scoring.pointsPerWin;
+        entry2.points += scoring.pointsPerLoss;
       } else if (score2 > score1) {
         entry2.wins += 1;
         entry1.losses += 1;
-        entry2.points += 3;
+        entry2.points += scoring.pointsPerWin;
+        entry1.points += scoring.pointsPerLoss;
       } else {
         entry1.draws += 1;
         entry2.draws += 1;
-        entry1.points += 1;
-        entry2.points += 1;
+        entry1.points += scoring.pointsPerDraw;
+        entry2.points += scoring.pointsPerDraw;
+      }
+
+      if (scoring.includeFramePoints) {
+        entry1.points += score1;
+        entry2.points += score2;
       }
     });
 
@@ -108,7 +119,7 @@ function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
   });
 }
 
-module.exports = async ({ req, res, log, error }) => {
+module.exports = async function handler({ req, res, log, error }) {
   try {
     const endpoint = process.env.APPWRITE_ENDPOINT;
     const projectId = process.env.APPWRITE_PROJECT_ID;
@@ -145,3 +156,6 @@ module.exports = async ({ req, res, log, error }) => {
     return res.json({ error: err.message }, 500);
   }
 };
+
+module.exports.computeLeaderboard = computeLeaderboard;
+module.exports.SCORING_DEFAULTS = SCORING_DEFAULTS;

@@ -4,6 +4,7 @@ import {
   Pressable,
   Share,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -39,6 +40,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
   const [pointsPerWin, setPointsPerWin] = useState((currentLeague?.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin).toString());
   const [pointsPerDraw, setPointsPerDraw] = useState((currentLeague?.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw).toString());
   const [pointsPerLoss, setPointsPerLoss] = useState((currentLeague?.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss).toString());
+  const [includeFramePoints, setIncludeFramePoints] = useState(currentLeague?.includeFramePoints ?? false);
   const [loading, setLoading] = useState(false);
 
   const canEdit = canPerform(ACTIONS.EDIT_LEAGUE_SETTINGS);
@@ -53,6 +55,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
       setPointsPerWin((currentLeague.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin).toString());
       setPointsPerDraw((currentLeague.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw).toString());
       setPointsPerLoss((currentLeague.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss).toString());
+      setIncludeFramePoints(currentLeague.includeFramePoints ?? false);
     }
   }, [currentLeague]);
 
@@ -79,6 +82,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
         pointsPerWin: parsedWin,
         pointsPerDraw: parsedDraw,
         pointsPerLoss: parsedLoss,
+        includeFramePoints,
       });
       await refreshCurrentLeague();
       Alert.alert("Saved", "League settings updated");
@@ -193,6 +197,14 @@ export const LeagueSettingsScreen = ({ navigation }) => {
     <Screen edges={[]}>
       <SectionHeader title="League Settings" />
 
+      {/* Sport type (read-only) */}
+      <View style={styles.sportDisplay}>
+        <Text style={styles.sportDisplayLabel}>Sport:</Text>
+        <Text style={styles.sportDisplayValue}>
+          {(currentLeague.sportType || "pool").charAt(0).toUpperCase() + (currentLeague.sportType || "pool").slice(1)}
+        </Text>
+      </View>
+
       {/* Role info */}
       <View style={styles.roleSection}>
         <Text style={styles.roleLabel}>Your role:</Text>
@@ -267,6 +279,20 @@ export const LeagueSettingsScreen = ({ navigation }) => {
             onChangeText={setPointsPerLoss}
             keyboardType="default"
           />
+          <View style={styles.frameToggleRow}>
+            <View style={styles.frameToggleLabel}>
+              <Text style={styles.frameToggleTitle}>Include Frame Points</Text>
+              <Text style={styles.frameToggleHint}>
+                Add each player's frame score as bonus leaderboard points
+              </Text>
+            </View>
+            <Switch
+              value={includeFramePoints}
+              onValueChange={setIncludeFramePoints}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor="#fff"
+            />
+          </View>
         </Card>
       )}
 
@@ -402,5 +428,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  sportDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sportDisplayLabel: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  sportDisplayValue: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  frameToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  frameToggleLabel: {
+    flex: 1,
+    marginRight: 12,
+  },
+  frameToggleTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  frameToggleHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
 });

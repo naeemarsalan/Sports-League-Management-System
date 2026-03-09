@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Users, Target, Trophy, UserCheck } from 'lucide-react';
-import { databases, DATABASE_ID, COLLECTIONS } from '@/src/lib/appwrite';
-import { Query } from 'appwrite';
 import StatsCounter from './StatsCounter';
 import { FadeInSection, StaggerContainer, StaggerItem } from './AnimatedSection';
 
@@ -25,28 +23,11 @@ export default function StatsSection() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [profiles, matches, leagues, members] = await Promise.all([
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, [Query.limit(1)]),
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.MATCHES, [
-            Query.equal('isCompleted', true),
-            Query.limit(1),
-          ]),
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.LEAGUES, [
-            Query.equal('isActive', true),
-            Query.limit(1),
-          ]),
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.LEAGUE_MEMBERS, [
-            Query.equal('status', 'approved'),
-            Query.limit(1),
-          ]),
-        ]);
-
-        setStats({
-          players: profiles.total,
-          matches: matches.total,
-          leagues: leagues.total,
-          members: members.total,
-        });
+        const res = await fetch('/api/stats');
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
       } catch {
         // Falls back to 0 on error
       }

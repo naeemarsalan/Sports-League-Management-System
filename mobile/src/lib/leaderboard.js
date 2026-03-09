@@ -107,6 +107,7 @@ export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) =>
         draws: 0,
         losses: 0,
         points: 0,
+        framesWon: 0,
       };
     });
 
@@ -148,6 +149,10 @@ export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) =>
       standings[key1].gamesPlayed += 1;
       standings[key2].gamesPlayed += 1;
 
+      // Track frames won unconditionally
+      standings[key1].framesWon += scorePlayer1;
+      standings[key2].framesWon += scorePlayer2;
+
       // Determine winner and update stats
       if (scorePlayer1 > scorePlayer2) {
         standings[key1].wins += 1;
@@ -164,6 +169,12 @@ export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) =>
         standings[key1].points += scoring.pointsPerDraw;
         standings[key2].draws += 1;
         standings[key2].points += scoring.pointsPerDraw;
+      }
+
+      // Add frame scores as bonus points if enabled
+      if (scoring.includeFramePoints) {
+        standings[key1].points += scorePlayer1;
+        standings[key2].points += scorePlayer2;
       }
     });
 

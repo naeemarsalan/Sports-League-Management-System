@@ -104,6 +104,31 @@ describe("createLeague", () => {
     const [, , , data] = mockCreateDocument.mock.calls[0];
     expect(data.description).toBe("");
   });
+
+  it("stores includeFramePoints and sportType", async () => {
+    mockCreateDocument.mockResolvedValue({ $id: "lg1" });
+
+    await createLeague({
+      name: "Frame League",
+      createdBy: "user-1",
+      includeFramePoints: true,
+      sportType: "snooker",
+    });
+
+    const [, , , data] = mockCreateDocument.mock.calls[0];
+    expect(data.includeFramePoints).toBe(true);
+    expect(data.sportType).toBe("snooker");
+  });
+
+  it("defaults includeFramePoints to false and sportType to pool", async () => {
+    mockCreateDocument.mockResolvedValue({ $id: "lg1" });
+
+    await createLeague({ name: "Basic League", createdBy: "user-1" });
+
+    const [, , , data] = mockCreateDocument.mock.calls[0];
+    expect(data.includeFramePoints).toBe(false);
+    expect(data.sportType).toBe("pool");
+  });
 });
 
 // ---- getLeague ----

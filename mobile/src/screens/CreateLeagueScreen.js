@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
 import { Input } from "../components/Input";
@@ -18,9 +18,11 @@ export const CreateLeagueScreen = ({ navigation }) => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sportType, setSportType] = useState("pool");
   const [pointsPerWin, setPointsPerWin] = useState(SCORING_DEFAULTS.pointsPerWin.toString());
   const [pointsPerDraw, setPointsPerDraw] = useState(SCORING_DEFAULTS.pointsPerDraw.toString());
   const [pointsPerLoss, setPointsPerLoss] = useState(SCORING_DEFAULTS.pointsPerLoss.toString());
+  const [includeFramePoints, setIncludeFramePoints] = useState(false);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -50,6 +52,8 @@ export const CreateLeagueScreen = ({ navigation }) => {
         pointsPerWin: parsedWin,
         pointsPerDraw: parsedDraw,
         pointsPerLoss: parsedLoss,
+        includeFramePoints,
+        sportType,
       });
 
       // Refresh user's leagues and set this as current
@@ -82,6 +86,27 @@ export const CreateLeagueScreen = ({ navigation }) => {
       />
 
       <View style={styles.form}>
+        {/* Sport Type Selector */}
+        <View style={styles.sportSelector}>
+          <Text style={styles.sportLabel}>Sport</Text>
+          <View style={styles.sportPills}>
+            <Pressable
+              style={[styles.sportPill, sportType === "pool" && styles.sportPillActive]}
+              onPress={() => setSportType("pool")}
+            >
+              <Text style={[styles.sportPillText, sportType === "pool" && styles.sportPillTextActive]}>
+                Pool
+              </Text>
+            </Pressable>
+            <View style={[styles.sportPill, styles.sportPillDisabled]}>
+              <Text style={[styles.sportPillText, styles.sportPillTextDisabled]}>Snooker</Text>
+              <View style={styles.comingSoonBadge}>
+                <Text style={styles.comingSoonText}>Coming Soon</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         <Input
           label="League Name"
           value={name}
@@ -98,40 +123,59 @@ export const CreateLeagueScreen = ({ navigation }) => {
           autoCapitalize="sentences"
         />
 
-        <Pressable
-          style={styles.advancedToggle}
-          onPress={() => setShowAdvanced(!showAdvanced)}
-        >
-          <Text style={styles.advancedToggleText}>Advanced Settings</Text>
-          <Ionicons
-            name={showAdvanced ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={colors.textMuted}
-          />
-        </Pressable>
+        {sportType === "pool" && (
+          <>
+            <Pressable
+              style={styles.advancedToggle}
+              onPress={() => setShowAdvanced(!showAdvanced)}
+            >
+              <Text style={styles.advancedToggleText}>Advanced Settings</Text>
+              <Ionicons
+                name={showAdvanced ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={colors.textMuted}
+              />
+            </Pressable>
 
-        {showAdvanced && (
-          <View style={styles.advancedSection}>
-            <Text style={styles.advancedLabel}>Scoring Rules</Text>
-            <Input
-              label="Points per Win"
-              value={pointsPerWin}
-              onChangeText={setPointsPerWin}
-              keyboardType="number-pad"
-            />
-            <Input
-              label="Points per Draw"
-              value={pointsPerDraw}
-              onChangeText={setPointsPerDraw}
-              keyboardType="number-pad"
-            />
-            <Input
-              label="Points per Loss"
-              value={pointsPerLoss}
-              onChangeText={setPointsPerLoss}
-              keyboardType="default"
-            />
-          </View>
+            {showAdvanced && (
+              <View style={styles.advancedSection}>
+                <Text style={styles.advancedLabel}>Scoring Rules</Text>
+                <Input
+                  label="Points per Win"
+                  value={pointsPerWin}
+                  onChangeText={setPointsPerWin}
+                  keyboardType="number-pad"
+                />
+                <Input
+                  label="Points per Draw"
+                  value={pointsPerDraw}
+                  onChangeText={setPointsPerDraw}
+                  keyboardType="number-pad"
+                />
+                <Input
+                  label="Points per Loss"
+                  value={pointsPerLoss}
+                  onChangeText={setPointsPerLoss}
+                  keyboardType="default"
+                />
+
+                <View style={styles.frameToggleRow}>
+                  <View style={styles.frameToggleLabel}>
+                    <Text style={styles.frameToggleTitle}>Include Frame Points</Text>
+                    <Text style={styles.frameToggleHint}>
+                      Add each player's frame score as bonus leaderboard points
+                    </Text>
+                  </View>
+                  <Switch
+                    value={includeFramePoints}
+                    onValueChange={setIncludeFramePoints}
+                    trackColor={{ false: colors.border, true: colors.accent }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              </View>
+            )}
+          </>
         )}
 
         <View style={styles.info}>
@@ -215,6 +259,84 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
     paddingLeft: 4,
+  },
+  sportSelector: {
+    marginBottom: 12,
+  },
+  sportLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  sportPills: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  sportPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  sportPillActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSubtle,
+  },
+  sportPillDisabled: {
+    opacity: 0.5,
+  },
+  sportPillText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  sportPillTextActive: {
+    color: colors.accent,
+  },
+  sportPillTextDisabled: {
+    color: colors.textMuted,
+  },
+  comingSoonBadge: {
+    backgroundColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  comingSoonText: {
+    color: colors.textMuted,
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  frameToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  frameToggleLabel: {
+    flex: 1,
+    marginRight: 12,
+  },
+  frameToggleTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  frameToggleHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
   footer: {
     paddingTop: 20,

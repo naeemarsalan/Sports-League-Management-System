@@ -1,6 +1,6 @@
 import { databases, ID, Query, appwriteConfig } from "./appwrite";
 
-export const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
+export const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0, includeFramePoints: false };
 
 /**
  * Read scoring config from a league document, falling back to defaults
@@ -9,6 +9,7 @@ export const getScoringConfig = (league) => ({
   pointsPerWin: league?.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
   pointsPerDraw: league?.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
   pointsPerLoss: league?.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
+  includeFramePoints: league?.includeFramePoints ?? SCORING_DEFAULTS.includeFramePoints,
 });
 
 /**
@@ -26,7 +27,7 @@ export const generateInviteCode = () => {
 /**
  * Create a new league
  */
-export const createLeague = async ({ name, description, createdBy, pointsPerWin, pointsPerDraw, pointsPerLoss }) => {
+export const createLeague = async ({ name, description, createdBy, pointsPerWin, pointsPerDraw, pointsPerLoss, includeFramePoints, sportType }) => {
   const inviteCode = generateInviteCode();
 
   const league = await databases.createDocument(
@@ -44,6 +45,8 @@ export const createLeague = async ({ name, description, createdBy, pointsPerWin,
       pointsPerWin: pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
       pointsPerDraw: pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
       pointsPerLoss: pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
+      includeFramePoints: includeFramePoints ?? SCORING_DEFAULTS.includeFramePoints,
+      sportType: sportType ?? "pool",
     }
   );
 
