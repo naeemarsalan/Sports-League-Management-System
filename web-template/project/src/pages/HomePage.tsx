@@ -1,4 +1,8 @@
+import { motion } from 'framer-motion';
 import { Trophy, Users, Calendar, Target, Shield, Bell, ArrowRight, Download } from 'lucide-react';
+import SnookerBreak from '../components/SnookerBreak';
+import FloatingBalls from '../components/FloatingBalls';
+import { FadeInSection, StaggerContainer, StaggerItem } from '../components/AnimatedSection';
 
 const screenshots = [
   { name: 'Dashboard', src: '/screenshots/dashboard.png' },
@@ -13,33 +17,81 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#34d9c3]/10 via-transparent to-transparent"></div>
+        <FloatingBalls />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+              <motion.h1
+                className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
+              >
                 Run Your Snooker League{' '}
-                <span className="bg-gradient-to-r from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent">
+                <motion.span
+                  className="bg-gradient-to-r from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent inline-block"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
                   Like a Pro
-                </span>
-              </h1>
-              <p className="text-xl text-gray-400 mb-8 leading-relaxed">
+                </motion.span>
+              </motion.h1>
+              <motion.p
+                className="text-xl text-gray-400 mb-8 leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
                 Create leagues, schedule matches, track standings, and challenge players — all from your phone.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <button className="group bg-[#34d9c3] hover:bg-[#2ab3a0] text-[#0a0e14] font-semibold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#34d9c3]/20 hover:shadow-xl hover:shadow-[#34d9c3]/30 hover:scale-105">
+              </motion.p>
+              <motion.div
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+              >
+                <motion.button
+                  className="group bg-[#34d9c3] hover:bg-[#2ab3a0] text-[#0a0e14] font-semibold px-8 py-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#34d9c3]/20"
+                  whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(52,217,195,0.3)' }}
+                  whileTap={{ scale: 0.97 }}
+                >
                   <Download className="w-5 h-5" />
                   Download on App Store
-                </button>
-                <button className="group bg-[#141922] hover:bg-[#1f2937] border-2 border-[#34d9c3]/30 hover:border-[#34d9c3] font-semibold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105">
+                </motion.button>
+                <motion.button
+                  className="group bg-[#141922] hover:bg-[#1f2937] border-2 border-[#34d9c3]/30 hover:border-[#34d9c3] font-semibold px-8 py-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.97 }}
+                >
                   <Download className="w-5 h-5" />
                   Get it on Google Play
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
             <div className="relative flex justify-center lg:justify-end">
-              <div className="relative">
+              {/* Interactive snooker table on lg+, phone preview on mobile */}
+              <div className="hidden lg:block">
+                <motion.div
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                >
+                  <SnookerBreak />
+                </motion.div>
+              </div>
+              <motion.div
+                className="relative lg:hidden"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#34d9c3] to-[#2ab3a0] rounded-[3rem] blur-3xl opacity-20"></div>
-                <div className="relative bg-[#141922] rounded-[3rem] p-4 border border-[#34d9c3]/20 shadow-2xl">
+                <motion.div
+                  className="relative bg-[#141922] rounded-[3rem] p-4 border border-[#34d9c3]/20 shadow-2xl"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                >
                   <div className="w-64 h-[520px] rounded-3xl border-4 border-gray-800 shadow-2xl overflow-hidden">
                     <img
                       src="/screenshots/leaderboard.png"
@@ -47,8 +99,8 @@ export default function HomePage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -57,7 +109,7 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <FadeInSection className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-4">
               Everything You Need to{' '}
               <span className="bg-gradient-to-r from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent">
@@ -65,8 +117,8 @@ export default function HomePage() {
               </span>
             </h2>
             <p className="text-xl text-gray-400">Powerful features designed for competitive play</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          </FadeInSection>
+          <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: Trophy,
@@ -99,29 +151,44 @@ export default function HomePage() {
                 description: 'Get notified about challenges, match updates, and league activity',
               },
             ].map((feature, index) => (
-              <div
-                key={index}
-                className="group bg-[#141922] border border-[#34d9c3]/10 hover:border-[#34d9c3]/40 rounded-2xl p-8 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-xl hover:shadow-[#34d9c3]/10"
-              >
-                <div className="bg-gradient-to-br from-[#34d9c3] to-[#2ab3a0] w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <feature.icon className="w-7 h-7 text-[#0a0e14]" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
+              <StaggerItem key={index}>
+                <motion.div
+                  className="group bg-[#141922] border border-[#34d9c3]/10 hover:border-[#34d9c3]/40 rounded-2xl p-8 transition-colors duration-300 h-full"
+                  whileHover={{ scale: 1.04, y: -4 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <motion.div
+                    className="bg-gradient-to-br from-[#34d9c3] to-[#2ab3a0] w-14 h-14 rounded-xl flex items-center justify-center mb-6"
+                    whileHover={{ rotate: 8, scale: 1.1 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                  >
+                    <feature.icon className="w-7 h-7 text-[#0a0e14]" />
+                  </motion.div>
+                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+                </motion.div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 bg-[#141922]/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+      <section className="py-24 bg-[#141922]/50 relative overflow-hidden">
+        {/* Decorative cue stick */}
+        <motion.div
+          className="absolute top-1/2 -left-32 w-[500px] h-[3px] bg-gradient-to-r from-transparent via-[#c49a6c] to-[#8b6f47] rounded-full -rotate-12 opacity-20"
+          initial={{ x: -200 }}
+          whileInView={{ x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: 'easeOut' }}
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <FadeInSection className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-4">How It Works</h2>
             <p className="text-xl text-gray-400">Get started in three simple steps</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          </FadeInSection>
+          <StaggerContainer className="grid md:grid-cols-3 gap-8">
             {[
               {
                 step: '01',
@@ -139,29 +206,52 @@ export default function HomePage() {
                 description: 'Schedule matches, record results, and climb the leaderboard',
               },
             ].map((item, index) => (
-              <div key={index} className="relative">
-                <div className="bg-[#141922] border border-[#34d9c3]/20 rounded-2xl p-8 h-full hover:border-[#34d9c3]/40 transition-all duration-300">
-                  <div className="text-6xl font-bold bg-gradient-to-br from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent mb-4">
-                    {item.step}
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">{item.description}</p>
+              <StaggerItem key={index}>
+                <div className="relative h-full">
+                  <motion.div
+                    className="bg-[#141922] border border-[#34d9c3]/20 rounded-2xl p-8 h-full hover:border-[#34d9c3]/40 transition-colors duration-300"
+                    whileHover={{ y: -6 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <motion.div
+                      className="text-6xl font-bold bg-gradient-to-br from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent mb-4 inline-block"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.2 + index * 0.15, type: 'spring', stiffness: 200 }}
+                    >
+                      {item.step}
+                    </motion.div>
+                    <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
+                    <p className="text-gray-400 leading-relaxed">{item.description}</p>
+                  </motion.div>
+                  {index < 2 && (
+                    <motion.div
+                      className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.6 + index * 0.2, duration: 0.4 }}
+                    >
+                      <motion.div
+                        animate={{ x: [0, 6, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <ArrowRight className="w-8 h-8 text-[#34d9c3]" />
+                      </motion.div>
+                    </motion.div>
+                  )}
                 </div>
-                {index < 2 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                    <ArrowRight className="w-8 h-8 text-[#34d9c3]" />
-                  </div>
-                )}
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* Screenshot/App Preview Section */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <FadeInSection className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-4">
               Beautiful Dark UI{' '}
               <span className="bg-gradient-to-r from-[#34d9c3] to-[#2ab3a0] bg-clip-text text-transparent">
@@ -169,32 +259,41 @@ export default function HomePage() {
               </span>
             </h2>
             <p className="text-xl text-gray-400">A seamless experience across all features</p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          </FadeInSection>
+          <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {screenshots.map((screen, index) => (
-              <div key={index} className="group">
-                <div className="relative bg-gradient-to-b from-[#141922] to-[#0a0e14] rounded-3xl border-4 border-gray-800 overflow-hidden aspect-[9/16] hover:scale-105 transition-transform duration-300 shadow-xl">
-                  <img
-                    src={screen.src}
-                    alt={`${screen.name} screen`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <p className="text-center text-[#34d9c3] font-semibold mt-3">{screen.name}</p>
-              </div>
+              <StaggerItem key={index}>
+                <motion.div
+                  className="group"
+                  whileHover={{ y: -8 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <div className="relative bg-gradient-to-b from-[#141922] to-[#0a0e14] rounded-3xl border-4 border-gray-800 overflow-hidden aspect-[9/16] shadow-xl group-hover:shadow-2xl group-hover:shadow-[#34d9c3]/10 transition-shadow duration-300">
+                    <img
+                      src={screen.src}
+                      alt={`${screen.name} screen`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Shine sweep on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                  </div>
+                  <p className="text-center text-[#34d9c3] font-semibold mt-3">{screen.name}</p>
+                </motion.div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* Use Cases Section */}
-      <section className="py-24 bg-[#141922]/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+      <section className="py-24 bg-[#141922]/50 relative overflow-hidden">
+        <FloatingBalls />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <FadeInSection className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-4">Built for Real Leagues</h2>
             <p className="text-xl text-gray-400">Whether you play at a club, pub, or community centre</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          </FadeInSection>
+          <StaggerContainer className="grid md:grid-cols-3 gap-8">
             {[
               {
                 title: 'Club Leagues',
@@ -209,36 +308,82 @@ export default function HomePage() {
                 description: 'Use the challenge system and leaderboard to run round-robin style competitions with automatic rankings.',
               },
             ].map((item, index) => (
-              <div
-                key={index}
-                className="bg-[#141922] border border-[#34d9c3]/20 rounded-2xl p-8 hover:border-[#34d9c3]/40 transition-all duration-300"
-              >
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{item.description}</p>
-              </div>
+              <StaggerItem key={index}>
+                <motion.div
+                  className="bg-[#141922] border border-[#34d9c3]/20 rounded-2xl p-8 hover:border-[#34d9c3]/40 transition-colors duration-300 h-full"
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{item.description}</p>
+                </motion.div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#34d9c3]/20 via-[#2ab3a0]/10 to-transparent"></div>
+
+        {/* Rolling cue ball across screen */}
+        <motion.div
+          className="absolute top-12 pointer-events-none"
+          initial={{ x: '-5vw' }}
+          whileInView={{ x: '105vw' }}
+          viewport={{ once: true }}
+          transition={{ duration: 3, delay: 0.5, ease: 'easeInOut' }}
+        >
+          <motion.div
+            animate={{ rotate: 1080 }}
+            transition={{ duration: 3, delay: 0.5, ease: 'easeInOut' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <defs>
+                <radialGradient id="cue-shine" cx="35%" cy="30%" r="65%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0)" />
+                  <stop offset="100%" stopColor="rgba(0,0,0,0.2)" />
+                </radialGradient>
+              </defs>
+              <circle cx="14" cy="14" r="13" fill="#f5f5f0" />
+              <circle cx="14" cy="14" r="13" fill="url(#cue-shine)" />
+            </svg>
+          </motion.div>
+        </motion.div>
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-6">Ready to Start Your League?</h2>
-          <p className="text-xl text-gray-400 mb-8">
-            Start organizing your league today — create, invite, and compete from your phone.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="group bg-[#34d9c3] hover:bg-[#2ab3a0] text-[#0a0e14] font-semibold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#34d9c3]/20 hover:shadow-xl hover:shadow-[#34d9c3]/30 hover:scale-105">
+          <FadeInSection>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">Ready to Start Your League?</h2>
+            <p className="text-xl text-gray-400 mb-8">
+              Start organizing your league today — create, invite, and compete from your phone.
+            </p>
+          </FadeInSection>
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <motion.button
+              className="group bg-[#34d9c3] hover:bg-[#2ab3a0] text-[#0a0e14] font-semibold px-8 py-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#34d9c3]/20"
+              whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(52,217,195,0.3)' }}
+              whileTap={{ scale: 0.97 }}
+            >
               <Download className="w-5 h-5" />
               Download on App Store
-            </button>
-            <button className="group bg-[#141922] hover:bg-[#1f2937] border-2 border-[#34d9c3]/30 hover:border-[#34d9c3] font-semibold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105">
+            </motion.button>
+            <motion.button
+              className="group bg-[#141922] hover:bg-[#1f2937] border-2 border-[#34d9c3]/30 hover:border-[#34d9c3] font-semibold px-8 py-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+            >
               <Download className="w-5 h-5" />
               Get it on Google Play
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         </div>
       </section>
     </>

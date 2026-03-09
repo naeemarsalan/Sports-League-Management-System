@@ -47,7 +47,7 @@ export const RegisterScreen = ({ navigation }) => {
         />
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
-            By creating an account, you agree to our{" "}
+            I am at least 13 years old and agree to the{" "}
             <Text
               style={{ color: colors.accent, textDecorationLine: "underline" }}
               onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/terms")}
@@ -72,6 +72,11 @@ export const RegisterScreen = ({ navigation }) => {
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
         <Text style={{ color: colors.textSecondary }}>
           Already registered? <Text style={{ color: colors.accent }}>Sign in</Text>
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/support")} style={{ marginTop: 12 }}>
+        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+          Need help? <Text style={{ color: colors.accent, textDecorationLine: "underline" }}>Contact Support</Text>
         </Text>
       </TouchableOpacity>
     </Screen>

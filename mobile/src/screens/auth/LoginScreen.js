@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Text, TouchableOpacity } from "react-native";
+import { Alert, Linking, Text, TouchableOpacity } from "react-native";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Screen } from "../../components/Screen";
@@ -36,6 +36,11 @@ export const LoginScreen = ({ navigation }) => {
         style={{ marginTop: 16 }}>
         <Text style={{ color: colors.textSecondary }}>
           New here? <Text style={{ color: colors.accent }}>Create an account</Text>
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/support")} style={{ marginTop: 12 }}>
+        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+          Need help? <Text style={{ color: colors.accent, textDecorationLine: "underline" }}>Contact Support</Text>
         </Text>
       </TouchableOpacity>
     </Screen>
