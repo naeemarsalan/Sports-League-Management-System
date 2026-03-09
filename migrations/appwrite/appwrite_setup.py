@@ -101,6 +101,7 @@ def build_permissions(member_role: str, admin_role: Optional[str]) -> list:
         f'read("{member_role}")',
         f'create("{member_role}")',
         f'update("{member_role}")',
+        f'delete("{member_role}")',
     ]
     if admin_role:
         permissions.append(f'write("{admin_role}")')
@@ -275,7 +276,46 @@ def main() -> None:
         },
     )
 
+    # Notification rate-limit logs collection
+    notification_logs_id = admin.create_collection(
+        database_id, "notification_logs", "Notification Logs", permissions
+    )
+    admin.create_attribute(
+        database_id,
+        notification_logs_id,
+        "string",
+        {"key": "leagueId", "size": 255, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id,
+        notification_logs_id,
+        "string",
+        {"key": "date", "size": 10, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id,
+        notification_logs_id,
+        "integer",
+        {"key": "count", "required": True, "min": 0, "max": 100000, "array": False},
+    )
+
+    # Per-league notification limit attribute on leagues collection
+    leagues_id = "leagues"
+    admin.create_attribute(
+        database_id,
+        leagues_id,
+        "integer",
+        {"key": "notificationLimit", "required": False, "min": 0, "max": 1000, "default": 50, "array": False},
+    )
+
     time.sleep(2)
+    admin.create_index(
+        database_id,
+        notification_logs_id,
+        "league_date",
+        "unique",
+        ["leagueId", "date"],
+    )
     admin.create_index(
         database_id, matches_id, "matches_week", "key", ["weekCommencing"]
     )

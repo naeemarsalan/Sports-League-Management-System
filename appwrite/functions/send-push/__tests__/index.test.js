@@ -394,6 +394,146 @@ describe("notification types", () => {
     expect(payload.body).toBe("You have a new notification");
   });
 
+  it("sends join_request with requesterName", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "join_request",
+      userId: "u1",
+      data: { requesterName: "Charlie" },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("New Join Request");
+    expect(payload.body).toBe("Charlie wants to join your league");
+    expect(payload.data).toEqual({ type: "join_request" });
+  });
+
+  it("sends join_request without requesterName", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "join_request",
+      userId: "u1",
+      data: {},
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.body).toBe("Someone wants to join your league");
+  });
+
+  it("sends join_approved with leagueName", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "join_approved",
+      userId: "u1",
+      data: { leagueName: "City League" },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("Request Approved");
+    expect(payload.body).toBe("You've been accepted into City League");
+    expect(payload.data).toEqual({ type: "join_approved" });
+  });
+
+  it("sends join_rejected with leagueName", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "join_rejected",
+      userId: "u1",
+      data: { leagueName: "City League" },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("Request Declined");
+    expect(payload.body).toBe("Your request to join City League was declined");
+    expect(payload.data).toEqual({ type: "join_rejected" });
+  });
+
+  it("sends position_overtaken with overtakerName", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "position_overtaken",
+      userId: "u1",
+      data: { overtakerName: "Dave", oldPosition: 3, newPosition: 4 },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("Leaderboard Update");
+    expect(payload.body).toBe(
+      "Dave has overtaken you! You dropped from #3 to #4"
+    );
+    expect(payload.data).toEqual({
+      type: "position_overtaken",
+      oldPosition: 3,
+      newPosition: 4,
+    });
+  });
+
+  it("sends position_overtaken without data", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "position_overtaken",
+      userId: "u1",
+      data: {},
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.body).toBe("Your leaderboard position has changed");
+  });
+
+  it("sends admin_broadcast with title and message", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "admin_broadcast",
+      userId: "u1",
+      data: { title: "Important Update", message: "Tournaments start Monday" },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("Important Update");
+    expect(payload.body).toBe("Tournaments start Monday");
+    expect(payload.data).toEqual({
+      type: "admin_broadcast",
+      leagueName: undefined,
+    });
+  });
+
+  it("sends admin_broadcast without title", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "admin_broadcast",
+      userId: "u1",
+      data: { message: "Season ends Friday" },
+    });
+    await handler(ctx);
+
+    const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(payload.title).toBe("League Announcement");
+    expect(payload.body).toBe("Season ends Friday");
+  });
+
   it("sends to multiple push targets", async () => {
     setupProfileAndTargets(["t0", "t1"]);
     setupMessagingSuccess();
@@ -489,5 +629,196 @@ describe("error handling", () => {
     const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
     expect(payload.body).not.toContain("<script>");
     expect(payload.body).toContain("Bob");
+  });
+});
+
+// ---- Rate limiting ----
+describe("rate limiting", () => {
+  function setupProfileAndTargets() {
+    // profile lookup
+    mockFetch.mockResolvedValueOnce(jsonResponse({ userId: "auth-1" }));
+    // targets
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        targets: [
+          { $id: "t0", identifier: "device-token-t0", providerType: "push" },
+        ],
+      })
+    );
+  }
+
+  function setupMessagingSuccess() {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ $id: "msg-1", status: "sent" })
+    );
+  }
+
+  it("skips rate limiting when no leagueId", async () => {
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "challenge_received",
+      userId: "u1",
+      data: { challengerName: "Alice" },
+    });
+    await handler(ctx);
+
+    // Without leagueId, call 0 is profile lookup (no rate limit calls)
+    expect(mockFetch.mock.calls[0][0]).toContain(
+      "/databases/pool-league/collections/profiles/documents/u1"
+    );
+    expect(ctx.res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, sentTo: 1 })
+    );
+  });
+
+  it("allows notification when under daily limit", async () => {
+    // call 0: league doc fetch (per-league limit)
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ notificationLimit: 50 })
+    );
+    // call 1: rate limit logs query — returns existing doc with count=5
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        documents: [{ $id: "log-1", count: 5 }],
+      })
+    );
+    // call 2: PATCH counter
+    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-1" }));
+    // call 3: profile lookup
+    // call 4: targets
+    // call 5: messaging
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "challenge_received",
+      userId: "u1",
+      data: { challengerName: "Alice" },
+      leagueId: "league-1",
+    });
+    await handler(ctx);
+
+    // call 0: league doc fetch
+    expect(mockFetch.mock.calls[0][0]).toContain(
+      "/databases/pool-league/collections/leagues/documents/league-1"
+    );
+    // call 1: logs query
+    expect(mockFetch.mock.calls[1][0]).toContain(
+      "/databases/pool-league/collections/notification_logs/documents"
+    );
+    // call 2: PATCH the existing log doc
+    expect(mockFetch.mock.calls[2][0]).toContain(
+      "/databases/pool-league/collections/notification_logs/documents/log-1"
+    );
+    expect(mockFetch.mock.calls[2][1].method).toBe("PATCH");
+    // call 3: profile lookup
+    expect(mockFetch.mock.calls[3][0]).toContain(
+      "/databases/pool-league/collections/profiles/documents/u1"
+    );
+
+    expect(ctx.res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, sentTo: 1 })
+    );
+  });
+
+  it("blocks notification when daily limit reached", async () => {
+    // call 0: league doc fetch
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ notificationLimit: 50 })
+    );
+    // call 1: rate limit logs query — returns doc with count=50 (at limit)
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        documents: [{ $id: "log-1", count: 50 }],
+      })
+    );
+
+    const ctx = makeContext({
+      type: "challenge_received",
+      userId: "u1",
+      data: { challengerName: "Alice" },
+      leagueId: "league-1",
+    });
+    await handler(ctx);
+
+    // Should have made 2 fetch calls (league doc + logs query)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(ctx.res.json).toHaveBeenCalledWith({
+      success: false,
+      rateLimited: true,
+      error: "Daily notification limit reached for this league",
+      count: 50,
+      limit: 50,
+    });
+  });
+
+  it("creates new log document when none exists", async () => {
+    // call 0: league doc fetch
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ notificationLimit: 50 })
+    );
+    // call 1: rate limit logs query — returns empty documents
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ documents: [] })
+    );
+    // call 2: POST new log doc
+    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-new" }));
+    // call 3: profile lookup
+    // call 4: targets
+    // call 5: messaging
+    setupProfileAndTargets();
+    setupMessagingSuccess();
+
+    const ctx = makeContext({
+      type: "challenge_received",
+      userId: "u1",
+      data: { challengerName: "Alice" },
+      leagueId: "league-2",
+    });
+    await handler(ctx);
+
+    // call 2: POST to create new doc
+    expect(mockFetch.mock.calls[2][0]).toContain(
+      "/databases/pool-league/collections/notification_logs/documents"
+    );
+    expect(mockFetch.mock.calls[2][1].method).toBe("POST");
+    const postBody = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(postBody.data.leagueId).toBe("league-2");
+    expect(postBody.data.count).toBe(1);
+
+    expect(ctx.res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, sentTo: 1 })
+    );
+  });
+
+  it("uses per-league notificationLimit from league document", async () => {
+    // call 0: league doc fetch — custom limit of 10
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ notificationLimit: 10 })
+    );
+    // call 1: rate limit logs query — count=10, at custom limit
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        documents: [{ $id: "log-1", count: 10 }],
+      })
+    );
+
+    const ctx = makeContext({
+      type: "challenge_received",
+      userId: "u1",
+      data: {},
+      leagueId: "league-custom",
+    });
+    await handler(ctx);
+
+    expect(ctx.res.json).toHaveBeenCalledWith({
+      success: false,
+      rateLimited: true,
+      error: "Daily notification limit reached for this league",
+      count: 10,
+      limit: 10,
+    });
   });
 });

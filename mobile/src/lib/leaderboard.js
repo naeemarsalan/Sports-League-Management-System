@@ -1,5 +1,6 @@
 import { databases, Query, appwriteConfig } from "./appwrite";
 import { getLeagueMembers } from "./members";
+import { sendPushNotification } from "./notifications";
 
 /**
  * Compute leaderboard standings from matches and profiles locally
@@ -176,5 +177,41 @@ export const fetchLeaderboard = async (leagueId = null) => {
   } catch (error) {
     console.error("Error computing leaderboard:", error.message, error);
     return [];
+  }
+};
+
+/**
+ * Compare leaderboard before and after a score submission, and notify
+ * players whose position dropped (were overtaken).
+ * @param {Array} before - Leaderboard array before score submission
+ * @param {Array} after - Leaderboard array after score submission
+ * @param {string} [leagueId] - League ID for rate limiting
+ */
+export const notifyOvertakenPlayers = (before, after, leagueId = null) => {
+  try {
+    // Build position maps: playerId -> 1-based rank
+    const posBefore = new Map();
+    before.forEach((entry, i) => posBefore.set(entry.playerId, i + 1));
+
+    const posAfter = new Map();
+    after.forEach((entry, i) => posAfter.set(entry.playerId, i + 1));
+
+    for (const [playerId, newPos] of posAfter) {
+      const oldPos = posBefore.get(playerId);
+      if (oldPos == null) continue; // new player, skip
+
+      if (newPos > oldPos) {
+        // Player dropped — find who overtook them
+        // The player now at their old position is the overtaker
+        const overtaker = after[oldPos - 1]; // 0-indexed
+        sendPushNotification("position_overtaken", playerId, {
+          overtakerName: overtaker?.name,
+          oldPosition: oldPos,
+          newPosition: newPos,
+        }, leagueId);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to send position overtaken notifications:", err.message);
   }
 };

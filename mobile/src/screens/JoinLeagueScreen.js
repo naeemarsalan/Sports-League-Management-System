@@ -9,10 +9,11 @@ import { Card } from "../components/Card";
 import { useAuthStore } from "../state/useAuthStore";
 import { getLeagueByInviteCode } from "../lib/leagues";
 import { requestToJoinLeague, getMembership } from "../lib/members";
+import { useLeagueStore } from "../state/useLeagueStore";
 import { colors } from "../theme/colors";
 
 export const JoinLeagueScreen = ({ navigation }) => {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,7 +70,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await requestToJoinLeague(foundLeague.$id, user.$id);
+      await requestToJoinLeague(foundLeague.$id, user.$id, profile?.displayName);
 
       Alert.alert(
         "Request Sent!",

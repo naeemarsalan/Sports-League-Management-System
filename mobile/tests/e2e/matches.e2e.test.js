@@ -291,6 +291,41 @@ describeE2E("Matches E2E", () => {
     expect(updated.scheduledAt).toBeTruthy();
   });
 
+  it("should allow a user to delete a match", async () => {
+    const match = await user1.databases.createDocument(
+      CONFIG.databaseId,
+      CONFIG.matchesCollectionId,
+      ID.unique(),
+      {
+        player1Id: user1.userId,
+        player2Id: user2.userId,
+        leagueId: league.$id,
+        weekCommencing: new Date().toISOString(),
+        isCompleted: false,
+      },
+      [
+        Permission.read(Role.users()),
+        Permission.update(Role.users()),
+        Permission.delete(Role.users()),
+      ]
+    );
+
+    await user1.databases.deleteDocument(
+      CONFIG.databaseId,
+      CONFIG.matchesCollectionId,
+      match.$id
+    );
+
+    // Verify it's gone
+    await expect(
+      user1.databases.getDocument(
+        CONFIG.databaseId,
+        CONFIG.matchesCollectionId,
+        match.$id
+      )
+    ).rejects.toThrow();
+  });
+
   it("should filter completed matches", async () => {
     const response = await user1.databases.listDocuments(
       CONFIG.databaseId,

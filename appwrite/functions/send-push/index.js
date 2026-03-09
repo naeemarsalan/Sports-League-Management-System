@@ -4,12 +4,20 @@ const crypto = require("crypto");
 /**
  * Sends push notifications to users via Appwrite Messaging (APNs).
  *
- * Expected body: { type, userId, data }
+ * Expected body: { type, userId, data, leagueId? }
  *
  * Types:
  * - challenge_received: When someone challenges you to a match
  * - match_scheduled: When a match time is confirmed
  * - score_submitted: When match results are recorded
+ * - join_request / join_approved / join_rejected: Membership events
+ * - position_overtaken: Leaderboard position change
+ * - admin_broadcast: Admin announcement
+ *
+ * Rate limiting:
+ * - When leagueId is provided, enforces a daily notification cap per league.
+ * - Default: 50 notifications/league/day (override with NOTIFICATION_DAILY_LIMIT env var).
+ * - Returns { rateLimited: true } when the cap is exceeded.
  */
 module.exports = async ({ req, res, log, error }) => {
   const endpoint = process.env.APPWRITE_ENDPOINT;
@@ -28,7 +36,7 @@ module.exports = async ({ req, res, log, error }) => {
     body = req.body || {};
   }
 
-  const { type, userId, data } = body;
+  const { type, userId, data, leagueId } = body;
 
   if (!type || !userId) {
     return res.json({ success: false, error: "type and userId are required" }, 400);
@@ -55,8 +63,91 @@ module.exports = async ({ req, res, log, error }) => {
 
   const databaseId = process.env.APPWRITE_DATABASE_ID || "pool-league";
   const profilesCollection = process.env.APPWRITE_PROFILES_COLLECTION_ID || "profiles";
+  const notificationLogsCollection = "notification_logs";
+  const dailyLimit = parseInt(process.env.NOTIFICATION_DAILY_LIMIT, 10) || 50;
 
   try {
+    // Fetch per-league notification limit if available
+    let effectiveLimit = dailyLimit;
+    if (leagueId) {
+      try {
+        const leagueUrl = `${endpoint}/databases/${databaseId}/collections/leagues/documents/${leagueId}`;
+        const leagueRes = await fetch(leagueUrl, { headers });
+        if (leagueRes.ok) {
+          const league = await leagueRes.json();
+          if (league.notificationLimit != null) {
+            effectiveLimit = league.notificationLimit;
+          }
+        }
+      } catch (e) {
+        log(`Could not fetch league limit, using default: ${dailyLimit}`);
+      }
+    }
+
+    // --- Rate limiting per league ---
+    if (leagueId) {
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const logsQuery = encodeURIComponent(JSON.stringify([
+        { method: "equal", attribute: "leagueId", values: [leagueId] },
+        { method: "equal", attribute: "date", values: [today] },
+      ]));
+      const logsUrl = `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents?queries=${logsQuery}`;
+      const logsRes = await fetch(logsUrl, { headers });
+
+      let currentCount = 0;
+      let logDocId = null;
+
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        if (logsData.documents && logsData.documents.length > 0) {
+          const logDoc = logsData.documents[0];
+          currentCount = logDoc.count || 0;
+          logDocId = logDoc.$id;
+        }
+      }
+
+      if (currentCount >= effectiveLimit) {
+        log(`Rate limited: league ${leagueId} has sent ${currentCount}/${effectiveLimit} notifications today`);
+        return res.json({
+          success: false,
+          rateLimited: true,
+          error: "Daily notification limit reached for this league",
+          count: currentCount,
+          limit: effectiveLimit,
+        });
+      }
+
+      // Increment the counter (create or update)
+      if (logDocId) {
+        await fetch(
+          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents/${logDocId}`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ data: { count: currentCount + 1 } }),
+          }
+        );
+      } else {
+        const newDocId = crypto.randomUUID();
+        await fetch(
+          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              documentId: newDocId,
+              data: { leagueId, date: today, count: 1 },
+              permissions: [
+                `read("users")`,
+                `update("users")`,
+              ],
+            }),
+          }
+        );
+      }
+
+      log(`Rate limit: league ${leagueId} at ${currentCount + 1}/${effectiveLimit} today`);
+    }
     // userId from the caller is a profile document ID, not an Auth user ID.
     // Look up the profile to get the actual Auth user ID.
     const profileUrl = `${endpoint}/databases/${databaseId}/collections/${profilesCollection}/documents/${userId}`;
@@ -128,6 +219,51 @@ module.exports = async ({ req, res, log, error }) => {
         notificationData = {
           type: "score_submitted",
           matchId: data?.matchId,
+        };
+        break;
+
+      case "join_request":
+        title = "New Join Request";
+        body = data?.requesterName
+          ? `${sanitize(data.requesterName)} wants to join your league`
+          : "Someone wants to join your league";
+        notificationData = { type: "join_request" };
+        break;
+
+      case "join_approved":
+        title = "Request Approved";
+        body = data?.leagueName
+          ? `You've been accepted into ${sanitize(data.leagueName)}`
+          : "Your league join request was approved";
+        notificationData = { type: "join_approved" };
+        break;
+
+      case "join_rejected":
+        title = "Request Declined";
+        body = data?.leagueName
+          ? `Your request to join ${sanitize(data.leagueName)} was declined`
+          : "Your league join request was declined";
+        notificationData = { type: "join_rejected" };
+        break;
+
+      case "position_overtaken":
+        title = "Leaderboard Update";
+        body = data?.overtakerName
+          ? `${sanitize(data.overtakerName)} has overtaken you! You dropped from #${data.oldPosition} to #${data.newPosition}`
+          : "Your leaderboard position has changed";
+        notificationData = {
+          type: "position_overtaken",
+          oldPosition: data?.oldPosition,
+          newPosition: data?.newPosition,
+        };
+        break;
+
+      case "admin_broadcast":
+        title = sanitize(data?.title, 100) || "League Announcement";
+        body = sanitize(data?.message) || "You have a new announcement";
+        notificationData = {
+          type: "admin_broadcast",
+          leagueName: data?.leagueName,
         };
         break;
 

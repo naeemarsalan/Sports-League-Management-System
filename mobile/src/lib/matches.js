@@ -1,20 +1,5 @@
-import { databases, functions, ID, Permission, Query, Role, appwriteConfig } from "./appwrite";
-
-/**
- * Send a push notification (fire-and-forget, doesn't throw on failure)
- */
-const sendPushNotification = async (type, userId, data) => {
-  try {
-    await functions.createExecution(
-      "send-push",
-      JSON.stringify({ type, userId, data }),
-      false // async execution
-    );
-  } catch (error) {
-    // Log but don't throw - notifications are non-critical
-    console.warn("Failed to send push notification:", error.message);
-  }
-};
+import { databases, ID, Permission, Query, Role, appwriteConfig } from "./appwrite";
+import { sendPushNotification } from "./notifications";
 
 export const listMatches = async ({ leagueId, status, playerId, weekCommencing } = {}) => {
   const queries = [];
@@ -96,7 +81,7 @@ export const createMatch = async (payload, challengerName = null) => {
     sendPushNotification("challenge_received", payload.player2Id, {
       matchId: match.$id,
       challengerName,
-    });
+    }, payload.leagueId);
   }
 
   return match;
@@ -110,6 +95,7 @@ export const createMatch = async (payload, challengerName = null) => {
  * @param {string[]} notifyOptions.playerIds - Player IDs to notify
  * @param {string} notifyOptions.type - Notification type (match_scheduled, score_submitted)
  * @param {Object} notifyOptions.data - Additional notification data
+ * @param {string} [notifyOptions.leagueId] - League ID for rate limiting
  */
 export const updateMatch = async (matchId, payload, notifyOptions = null) => {
   const updated = await databases.updateDocument(
@@ -125,7 +111,7 @@ export const updateMatch = async (matchId, payload, notifyOptions = null) => {
       sendPushNotification(notifyOptions.type, playerId, {
         matchId,
         ...notifyOptions.data,
-      });
+      }, notifyOptions.leagueId);
     }
   }
 

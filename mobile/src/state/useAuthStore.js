@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { account, ID } from "../lib/appwrite";
+import { account, functions, ID } from "../lib/appwrite";
 import { createProfile, getProfileByUserId } from "../lib/profiles";
 
 export const useAuthStore = create((set, get) => ({
@@ -108,5 +108,24 @@ export const useAuthStore = create((set, get) => ({
     } finally {
       set({ user: null, profile: null, loading: false });
     }
+  },
+  deleteAccount: async () => {
+    set({ loading: true, error: null });
+    try {
+      const execution = await functions.createExecution(
+        "delete-account",
+        "",
+        false
+      );
+      const response = JSON.parse(execution.responseBody || "{}");
+      if (!response.success) {
+        throw new Error(response.error || "Account deletion failed");
+      }
+    } catch (error) {
+      console.error("Delete account error:", error);
+      set({ loading: false });
+      throw error;
+    }
+    set({ user: null, profile: null, loading: false });
   },
 }));

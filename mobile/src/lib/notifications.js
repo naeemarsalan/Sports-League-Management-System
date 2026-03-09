@@ -1,7 +1,51 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
-import { functions } from "./appwrite";
+import { databases, functions, Query } from "./appwrite";
+
+/**
+ * Send a push notification (fire-and-forget, doesn't throw on failure)
+ * @param {string} type - Notification type
+ * @param {string} userId - Target user/profile ID
+ * @param {Object} data - Notification payload
+ * @param {string} [leagueId] - League ID for rate limiting
+ */
+export const sendPushNotification = async (type, userId, data, leagueId = null) => {
+  try {
+    const payload = { type, userId, data };
+    if (leagueId) payload.leagueId = leagueId;
+    await functions.createExecution(
+      "send-push",
+      JSON.stringify(payload),
+      false // async execution
+    );
+  } catch (error) {
+    // Log but don't throw - notifications are non-critical
+    console.warn("Failed to send push notification:", error.message);
+  }
+};
+
+/**
+ * Get the current daily notification usage for a league.
+ * Reads the notification_logs collection directly.
+ * @param {string} leagueId - League ID
+ * @param {number} [dailyLimit=50] - Daily limit (should match NOTIFICATION_DAILY_LIMIT on server)
+ * @returns {Promise<{count: number, limit: number, remaining: number}>}
+ */
+export const getLeagueNotificationQuota = async (leagueId, dailyLimit = 50) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const response = await databases.listDocuments(
+      "pool-league",
+      "notification_logs",
+      [Query.equal("leagueId", leagueId), Query.equal("date", today)]
+    );
+    const count = response.documents[0]?.count || 0;
+    return { count, limit: dailyLimit, remaining: Math.max(0, dailyLimit - count) };
+  } catch {
+    return { count: 0, limit: dailyLimit, remaining: dailyLimit };
+  }
+};
 
 // Configure notification handler for foreground notifications
 Notifications.setNotificationHandler({

@@ -7,6 +7,7 @@ import { Input } from "../components/Input";
 import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { updateMatch } from "../lib/matches";
+import { fetchLeaderboard, notifyOvertakenPlayers } from "../lib/leaderboard";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 
@@ -49,6 +50,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
           opponentName: profile?.displayName,
           scheduledAt: payload.scheduledAt,
         },
+        leagueId: match.leagueId,
       });
       Alert.alert("Updated", "Match schedule updated.");
       navigation.goBack();
@@ -65,6 +67,10 @@ export const MatchDetailScreen = ({ route, navigation }) => {
       return;
     }
     try {
+      // Capture leaderboard before score submission
+      const leagueId = match.leagueId;
+      const beforeBoard = leagueId ? await fetchLeaderboard(leagueId) : [];
+
       await updateMatch(match.$id, {
         scorePlayer1: parsedScore1,
         scorePlayer2: parsedScore2,
@@ -78,7 +84,16 @@ export const MatchDetailScreen = ({ route, navigation }) => {
           player1Name: player1,
           player2Name: player2,
         },
+        leagueId: match.leagueId,
       });
+
+      // Capture leaderboard after and notify overtaken players (fire-and-forget)
+      if (leagueId && beforeBoard.length > 0) {
+        fetchLeaderboard(leagueId).then((afterBoard) => {
+          notifyOvertakenPlayers(beforeBoard, afterBoard, leagueId);
+        }).catch(() => {});
+      }
+
       Alert.alert("Updated", "Score submitted.");
       navigation.goBack();
     } catch (error) {

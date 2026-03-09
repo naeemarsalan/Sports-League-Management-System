@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import {
   Alert,
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -35,7 +36,7 @@ export const LeagueMembersScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState(TAB_MEMBERS);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { currentLeagueId, currentMembership, canPerform } = useLeagueStore();
+  const { currentLeague, currentLeagueId, currentMembership, canPerform } = useLeagueStore();
 
   const canManageMembers = canPerform(ACTIONS.APPROVE_MEMBERS);
 
@@ -70,14 +71,14 @@ export const LeagueMembersScreen = ({ navigation }) => {
 
   // Mutations
   const approveMutation = useMutation({
-    mutationFn: approveMember,
+    mutationFn: (membershipId) => approveMember(membershipId, currentLeague?.name),
     onSuccess: () => {
       queryClient.invalidateQueries(["leagueMembers"]);
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: rejectMember,
+    mutationFn: (membershipId) => rejectMember(membershipId, currentLeague?.name),
     onSuccess: () => {
       queryClient.invalidateQueries(["leagueMembers"]);
     },
@@ -231,9 +232,42 @@ export const LeagueMembersScreen = ({ navigation }) => {
                 [
                   { text: "Change Role", onPress: () => handleRoleChange(member) },
                   {
+                    text: "Report Concern",
+                    onPress: () =>
+                      Linking.openURL(
+                        `mailto:support@snookerpoolleague.co.uk?subject=${encodeURIComponent(
+                          `Report: ${member.profile?.displayName || "User"} in ${currentLeague?.name || "league"}`
+                        )}`
+                      ),
+                  },
+                  {
                     text: "Remove",
                     style: "destructive",
                     onPress: () => handleRemove(member),
+                  },
+                  { text: "Cancel", style: "cancel" },
+                ]
+              );
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
+          </Pressable>
+        ) : !isCurrentUser ? (
+          <Pressable
+            style={styles.moreBtn}
+            onPress={() => {
+              Alert.alert(
+                member.profile?.displayName || "Member",
+                "Choose an action",
+                [
+                  {
+                    text: "Report Concern",
+                    onPress: () =>
+                      Linking.openURL(
+                        `mailto:support@snookerpoolleague.co.uk?subject=${encodeURIComponent(
+                          `Report: ${member.profile?.displayName || "User"} in ${currentLeague?.name || "league"}`
+                        )}`
+                      ),
                   },
                   { text: "Cancel", style: "cancel" },
                 ]

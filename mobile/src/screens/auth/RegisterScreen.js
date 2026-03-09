@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Alert, Text, TouchableOpacity } from "react-native";
+import { Alert, Linking, Pressable, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Screen } from "../../components/Screen";
@@ -12,6 +13,7 @@ export const RegisterScreen = ({ navigation }) => {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   const handleRegister = async () => {
     try {
@@ -33,10 +35,39 @@ export const RegisterScreen = ({ navigation }) => {
         secureTextEntry
         placeholder="••••••••"
       />
+      <Pressable
+        onPress={() => setAgreed(!agreed)}
+        style={{ flexDirection: "row", alignItems: "flex-start", marginVertical: 12 }}
+      >
+        <Ionicons
+          name={agreed ? "checkbox" : "square-outline"}
+          size={22}
+          color={agreed ? colors.accent : colors.textMuted}
+          style={{ marginRight: 8, marginTop: 1 }}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
+            By creating an account, you agree to our{" "}
+            <Text
+              style={{ color: colors.accent, textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/terms")}
+            >
+              Terms of Service
+            </Text>
+            {" "}and{" "}
+            <Text
+              style={{ color: colors.accent, textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://snookerpoolleague.co.uk/privacy")}
+            >
+              Privacy Policy
+            </Text>.
+          </Text>
+        </View>
+      </Pressable>
       <Button
         title={loading ? "Creating..." : "Create Account"}
         onPress={handleRegister}
-        disabled={loading}
+        disabled={loading || !agreed}
       />
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
         <Text style={{ color: colors.textSecondary }}>

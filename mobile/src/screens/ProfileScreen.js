@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -17,10 +17,11 @@ import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
 
 export const ProfileScreen = ({ navigation }) => {
-  const { profile, user, bootstrap, logout, loading } = useAuthStore();
+  const { profile, user, bootstrap, logout, deleteAccount, loading } = useAuthStore();
   const [showEditName, setShowEditName] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: leaderboard = [] } = useQuery({
     queryKey: ["leaderboard"],
@@ -92,6 +93,45 @@ export const ProfileScreen = ({ navigation }) => {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and all associated data including your profile, league memberships, and match history. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              "Are you absolutely sure?",
+              "Type your action to confirm: all your data will be permanently removed.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Yes, Delete Everything",
+                  style: "destructive",
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                      await deleteAccount();
+                    } catch (error) {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                      Alert.alert("Error", error.message || "Failed to delete account. Please try again.");
+                      setDeleting(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -216,11 +256,30 @@ export const ProfileScreen = ({ navigation }) => {
           </View>
         )}
 
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => Linking.openURL("mailto:support@snookerpoolleague.co.uk")}
+        >
+          <Text style={styles.menuItemText}>Support / Report a Concern</Text>
+          <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
+        </Pressable>
+
         <Pressable style={styles.menuItem} onPress={handleLogout}>
           <Text style={[styles.menuItemText, { color: colors.danger }]}>
             Log Out
           </Text>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+        </Pressable>
+
+        <Pressable
+          style={[styles.menuItem, styles.deleteAccountItem]}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+        >
+          <Text style={[styles.menuItemText, { color: colors.danger }]}>
+            {deleting ? "Deleting Account..." : "Delete Account"}
+          </Text>
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
         </Pressable>
       </View>
     </Screen>
@@ -341,5 +400,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
+  },
+  deleteAccountItem: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: "transparent",
   },
 });

@@ -35,6 +35,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [notifLimit, setNotifLimit] = useState((currentLeague?.notificationLimit || 50).toString());
   const [loading, setLoading] = useState(false);
 
   const canEdit = canPerform(ACTIONS.EDIT_LEAGUE_SETTINGS);
@@ -45,6 +46,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
     if (currentLeague) {
       setName(currentLeague.name);
       setDescription(currentLeague.description || "");
+      setNotifLimit((currentLeague.notificationLimit || 50).toString());
     }
   }, [currentLeague]);
 
@@ -59,6 +61,7 @@ export const LeagueSettingsScreen = ({ navigation }) => {
       await updateLeague(currentLeague.$id, {
         name: name.trim(),
         description: description.trim(),
+        notificationLimit: parseInt(notifLimit, 10) || 50,
       });
       await refreshCurrentLeague();
       Alert.alert("Saved", "League settings updated");
@@ -215,6 +218,12 @@ export const LeagueSettingsScreen = ({ navigation }) => {
             value={description}
             onChangeText={setDescription}
             autoCapitalize="sentences"
+          />
+          <Input
+            label="Daily Notification Limit"
+            value={notifLimit}
+            onChangeText={setNotifLimit}
+            keyboardType="number-pad"
           />
           <Button
             title={loading ? "Saving..." : "Save Changes"}

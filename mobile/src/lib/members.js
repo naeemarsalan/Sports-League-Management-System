@@ -1,6 +1,7 @@
 import { databases, ID, Query, appwriteConfig } from "./appwrite";
 import { updateMemberCount } from "./leagues";
 import { listProfiles } from "./profiles";
+import { sendPushNotification } from "./notifications";
 
 // Role hierarchy (higher number = more permissions)
 export const ROLES = {
@@ -134,7 +135,7 @@ export const getPendingRequests = async (leagueId) => {
 /**
  * Request to join a league
  */
-export const requestToJoinLeague = async (leagueId, userId) => {
+export const requestToJoinLeague = async (leagueId, userId, requesterName = null) => {
   // Check if already a member
   const existing = await getMembership(leagueId, userId);
   if (existing) {
@@ -145,7 +146,7 @@ export const requestToJoinLeague = async (leagueId, userId) => {
     );
   }
 
-  return databases.createDocument(
+  const doc = await databases.createDocument(
     appwriteConfig.databaseId,
     appwriteConfig.leagueMembersCollectionId,
     ID.unique(),
@@ -157,12 +158,25 @@ export const requestToJoinLeague = async (leagueId, userId) => {
       requestedAt: new Date().toISOString(),
     }
   );
+
+  // Notify admins/owners about the join request (fire-and-forget)
+  try {
+    const members = await getLeagueMembers(leagueId, "approved");
+    const admins = members.filter((m) => m.role === "admin" || m.role === "owner");
+    for (const admin of admins) {
+      sendPushNotification("join_request", admin.userId, { requesterName }, leagueId);
+    }
+  } catch (err) {
+    console.warn("Failed to notify admins of join request:", err.message);
+  }
+
+  return doc;
 };
 
 /**
  * Approve a member's join request
  */
-export const approveMember = async (membershipId) => {
+export const approveMember = async (membershipId, leagueName = null) => {
   const membership = await databases.getDocument(
     appwriteConfig.databaseId,
     appwriteConfig.leagueMembersCollectionId,
@@ -182,14 +196,23 @@ export const approveMember = async (membershipId) => {
   // Update league member count
   await updateMemberCount(membership.leagueId, 1);
 
+  // Notify the approved user (fire-and-forget)
+  sendPushNotification("join_approved", membership.userId, { leagueName }, membership.leagueId);
+
   return updated;
 };
 
 /**
  * Reject a member's join request
  */
-export const rejectMember = async (membershipId) => {
-  return databases.updateDocument(
+export const rejectMember = async (membershipId, leagueName = null) => {
+  const membership = await databases.getDocument(
+    appwriteConfig.databaseId,
+    appwriteConfig.leagueMembersCollectionId,
+    membershipId
+  );
+
+  const updated = await databases.updateDocument(
     appwriteConfig.databaseId,
     appwriteConfig.leagueMembersCollectionId,
     membershipId,
@@ -197,6 +220,11 @@ export const rejectMember = async (membershipId) => {
       status: "rejected",
     }
   );
+
+  // Notify the rejected user (fire-and-forget)
+  sendPushNotification("join_rejected", membership.userId, { leagueName }, membership.leagueId);
+
+  return updated;
 };
 
 /**

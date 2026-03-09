@@ -37,6 +37,7 @@ async function main() {
       'read("users")',
       'create("users")',
       'update("users")',
+      'delete("users")',
     ]);
     console.log(
       `Successfully updated permissions for collection "${collectionId}" in database "${databaseId}".`

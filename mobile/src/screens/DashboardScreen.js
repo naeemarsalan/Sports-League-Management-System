@@ -289,6 +289,13 @@ export const DashboardScreen = ({ navigation }) => {
                     onPress={() => navigation.navigate("NewMatch")}
                   />
                 )}
+                {canManageMembers && (
+                  <ActionButton
+                    icon="megaphone-outline"
+                    label="Send Announcement"
+                    onPress={() => navigation.navigate("AdminBroadcast")}
+                  />
+                )}
                 <ActionButton
                   icon="settings-outline"
                   label="League Settings"
