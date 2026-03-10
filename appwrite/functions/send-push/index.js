@@ -117,36 +117,7 @@ module.exports = async ({ req, res, log, error }) => {
         });
       }
 
-      // Increment the counter (create or update)
-      if (logDocId) {
-        await fetch(
-          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents/${logDocId}`,
-          {
-            method: "PATCH",
-            headers,
-            body: JSON.stringify({ data: { count: currentCount + 1 } }),
-          }
-        );
-      } else {
-        const newDocId = crypto.randomUUID();
-        await fetch(
-          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              documentId: newDocId,
-              data: { leagueId, date: today, count: 1 },
-              permissions: [
-                `read("users")`,
-                `update("users")`,
-              ],
-            }),
-          }
-        );
-      }
-
-      log(`Rate limit: league ${leagueId} at ${currentCount + 1}/${effectiveLimit} today`);
+      // Counter will be incremented after successful send (see below)
     }
     // userId from the caller is a profile document ID, not an Auth user ID.
     // Look up the profile to get the actual Auth user ID.
@@ -303,6 +274,57 @@ module.exports = async ({ req, res, log, error }) => {
     log(`Appwrite Messaging result: ${JSON.stringify(pushResult)}`);
     log(`Push notification sent to ${pushTargets.length} targets for user ${userId}`);
 
+    // Increment rate limit counter after successful send
+    if (leagueId) {
+      const today = new Date().toISOString().slice(0, 10);
+      const logsQuery = encodeURIComponent(JSON.stringify([
+        { method: "equal", attribute: "leagueId", values: [leagueId] },
+        { method: "equal", attribute: "date", values: [today] },
+      ]));
+      const logsUrl = `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents?queries=${logsQuery}`;
+      const logsRes = await fetch(logsUrl, { headers });
+
+      let currentCount = 0;
+      let logDocId = null;
+
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        if (logsData.documents && logsData.documents.length > 0) {
+          currentCount = logsData.documents[0].count || 0;
+          logDocId = logsData.documents[0].$id;
+        }
+      }
+
+      if (logDocId) {
+        await fetch(
+          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents/${logDocId}`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ data: { count: currentCount + 1 } }),
+          }
+        );
+      } else {
+        const newDocId = crypto.randomUUID();
+        await fetch(
+          `${endpoint}/databases/${databaseId}/collections/${notificationLogsCollection}/documents`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              documentId: newDocId,
+              data: { leagueId, date: today, count: 1 },
+              permissions: [
+                `read("users")`,
+                `update("users")`,
+              ],
+            }),
+          }
+        );
+      }
+      log(`Rate limit: league ${leagueId} at ${currentCount + 1}/${effectiveLimit} today`);
+    }
+
     return res.json({
       success: true,
       sentTo: pushTargets.length,
@@ -311,6 +333,6 @@ module.exports = async ({ req, res, log, error }) => {
 
   } catch (err) {
     error(`Error sending push notification: ${err.message}`);
-    return res.json({ success: false, error: err.message }, 500);
+    return res.json({ success: false, error: "Internal server error" }, 500);
   }
 };

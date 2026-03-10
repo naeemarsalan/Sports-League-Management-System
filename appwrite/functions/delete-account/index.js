@@ -69,7 +69,7 @@ module.exports = async ({ req, res, log, error }) => {
     // 2. Delete league memberships and update member counts
     if (leagueMembersCollectionId) {
       try {
-        const membersUrl = `${endpoint}/databases/${databaseId}/collections/${leagueMembersCollectionId}/documents?queries[]=${encodeURIComponent(JSON.stringify(["equal(\"userId\", [\"" + userId + "\"])"]))}`;
+        const membersUrl = `${endpoint}/databases/${databaseId}/collections/${leagueMembersCollectionId}/documents?queries[]=${encodeURIComponent(JSON.stringify(["equal(\"userId\", [\"" + userId + "\"])"])) }&queries[]=${encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }))}`;
         const membersRes = await fetch(membersUrl, { headers });
         if (membersRes.ok) {
           const membersData = await membersRes.json();
@@ -85,15 +85,20 @@ module.exports = async ({ req, res, log, error }) => {
                 if (leagueRes.ok) {
                   const league = await leagueRes.json();
                   const newCount = Math.max(0, (league.memberCount || 1) - 1);
-                  await fetch(
+                  const patchRes = await fetch(
                     `${endpoint}/databases/${databaseId}/collections/${leaguesCollectionId}/documents/${membership.leagueId}`,
                     {
                       method: "PATCH",
                       headers,
-                      body: JSON.stringify({ memberCount: newCount }),
+                      body: JSON.stringify({ data: { memberCount: newCount } }),
                     }
                   );
-                  log(`Updated member count for league ${membership.leagueId}: ${newCount}`);
+                  if (patchRes.ok) {
+                    log(`Updated member count for league ${membership.leagueId}: ${newCount}`);
+                  } else {
+                    const patchErr = await patchRes.text();
+                    error(`Failed to update member count for league ${membership.leagueId}: ${patchErr}`);
+                  }
                 }
               } catch (err) {
                 error(`Error updating league count: ${err.message}`);

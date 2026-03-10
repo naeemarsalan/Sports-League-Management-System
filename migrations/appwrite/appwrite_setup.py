@@ -275,6 +275,79 @@ def main() -> None:
             "array": False,
         },
     )
+    admin.create_attribute(
+        database_id,
+        matches_id,
+        "string",
+        {
+            "key": "leagueId",
+            "size": 255,
+            "required": True,
+            "array": False,
+        },
+    )
+
+    # Leagues collection
+    leagues_id = admin.create_collection(
+        database_id, "leagues", "Leagues", permissions
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "string",
+        {"key": "name", "size": 255, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "string",
+        {"key": "description", "size": 1000, "required": False, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "string",
+        {"key": "inviteCode", "size": 10, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "string",
+        {"key": "createdBy", "size": 255, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "datetime",
+        {"key": "createdAt", "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "boolean",
+        {"key": "isActive", "required": False, "default": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, leagues_id, "integer",
+        {"key": "memberCount", "required": False, "min": 0, "max": None, "default": 0, "array": False},
+    )
+
+    # League members collection
+    league_members_id = admin.create_collection(
+        database_id, "league_members", "League Members", permissions
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "string",
+        {"key": "leagueId", "size": 255, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "string",
+        {"key": "userId", "size": 255, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "string",
+        {"key": "role", "size": 20, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "string",
+        {"key": "status", "size": 20, "required": True, "array": False},
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "datetime",
+        {"key": "joinedAt", "required": False, "array": False},
+    )
+    admin.create_attribute(
+        database_id, league_members_id, "datetime",
+        {"key": "requestedAt", "required": True, "array": False},
+    )
 
     # Notification rate-limit logs collection
     notification_logs_id = admin.create_collection(
@@ -300,7 +373,6 @@ def main() -> None:
     )
 
     # Per-league notification limit attribute on leagues collection
-    leagues_id = "leagues"
     admin.create_attribute(
         database_id,
         leagues_id,
@@ -325,7 +397,28 @@ def main() -> None:
         database_id, matches_id, "matches_completed", "key", ["isCompleted"]
     )
     admin.create_index(
+        database_id, matches_id, "matches_league", "key", ["leagueId"]
+    )
+    admin.create_index(
         database_id, profiles_id, "profiles_name", "key", ["displayName"]
+    )
+    admin.create_index(
+        database_id, leagues_id, "leagues_invite_code", "unique", ["inviteCode"]
+    )
+    admin.create_index(
+        database_id, leagues_id, "leagues_created_by", "key", ["createdBy"]
+    )
+    admin.create_index(
+        database_id, league_members_id, "members_league_user", "unique", ["leagueId", "userId"]
+    )
+    admin.create_index(
+        database_id, league_members_id, "members_league", "key", ["leagueId"]
+    )
+    admin.create_index(
+        database_id, league_members_id, "members_user", "key", ["userId"]
+    )
+    admin.create_index(
+        database_id, league_members_id, "members_status", "key", ["status"]
     )
 
     print("Appwrite database and collections are ready.")

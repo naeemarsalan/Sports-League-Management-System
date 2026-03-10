@@ -1,5 +1,4 @@
 import { databases, Query, appwriteConfig, callLeagueApi } from "./appwrite";
-import { listProfiles } from "./profiles";
 
 // Role hierarchy (higher number = more permissions)
 export const ROLES = {
@@ -108,19 +107,22 @@ export const getLeagueMemberProfiles = async (leagueId) => {
     return [];
   }
 
-  // Get all profiles
-  const profiles = await listProfiles();
-
   // Create a map of userId -> membership for quick lookup
   const membershipMap = new Map(members.map((m) => [m.userId, m]));
 
-  // Filter profiles to only include league members and attach membership info
-  return profiles
-    .filter((profile) => membershipMap.has(profile.userId))
-    .map((profile) => ({
-      ...profile,
-      membership: membershipMap.get(profile.userId),
-    }));
+  // Query profiles by specific member userIds instead of fetching all
+  const userIds = members.map((m) => m.userId);
+  const response = await databases.listDocuments(
+    appwriteConfig.databaseId,
+    appwriteConfig.profilesCollectionId,
+    [Query.equal("userId", userIds), Query.limit(500)]
+  );
+
+  // Attach membership info to profiles
+  return response.documents.map((profile) => ({
+    ...profile,
+    membership: membershipMap.get(profile.userId),
+  }));
 };
 
 /**
@@ -133,7 +135,7 @@ export const getPendingRequests = async (leagueId) => {
 /**
  * Request to join a league (server-side RBAC enforced)
  */
-export const requestToJoinLeague = async (leagueId, userId, requesterName = null) => {
+export const requestToJoinLeague = async (leagueId, requesterName = null) => {
   return callLeagueApi("requestToJoinLeague", { leagueId, requesterName });
 };
 

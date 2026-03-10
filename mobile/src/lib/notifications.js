@@ -17,7 +17,7 @@ export const sendPushNotification = async (type, userId, data, leagueId = null) 
     await functions.createExecution(
       "send-push",
       JSON.stringify(payload),
-      false // async execution
+      true // async execution
     );
   } catch (error) {
     // Log but don't throw - notifications are non-critical
@@ -121,7 +121,7 @@ export const savePushToken = async (userId, token) => {
     await functions.createExecution(
       "save-push-token",
       JSON.stringify({ userId, token, platform: Platform.OS }),
-      false
+      true // async execution
     );
     console.log("Push token saved successfully");
   } catch (error) {

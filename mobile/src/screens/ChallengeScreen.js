@@ -82,7 +82,15 @@ export const ChallengeScreen = ({ navigation }) => {
           player2Id: selectedOpponent.$id,
           leagueId: currentLeagueId,
           weekCommencing: weekCommencing.toISOString(),
-          scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
+          scheduledAt: scheduledAt
+            ? new Date(
+                weekCommencing.getFullYear(),
+                weekCommencing.getMonth(),
+                weekCommencing.getDate(),
+                scheduledAt.getHours(),
+                scheduledAt.getMinutes()
+              ).toISOString()
+            : null,
           isCompleted: false,
         },
         profile.displayName // Pass challenger name for push notification

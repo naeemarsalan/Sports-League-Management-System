@@ -67,6 +67,9 @@ export const migrateToMultiLeague = async (adminUserId) => {
       [Query.limit(500)]
     );
 
+    if (profilesRes.total > profilesRes.documents.length) {
+      console.warn(`Warning: ${profilesRes.total} profiles exist but only ${profilesRes.documents.length} fetched. Pagination not implemented — some profiles will be skipped.`);
+    }
     console.log(`Found ${profilesRes.documents.length} profiles to migrate...`);
 
     // Step 3: Add each profile as a league member
@@ -119,7 +122,7 @@ export const migrateToMultiLeague = async (adminUserId) => {
       appwriteConfig.leaguesCollectionId,
       defaultLeague.$id,
       {
-        memberCount: profilesRes.documents.length,
+        memberCount: profilesRes.total,
       }
     );
 
@@ -130,6 +133,9 @@ export const migrateToMultiLeague = async (adminUserId) => {
       [Query.limit(1000)]
     );
 
+    if (matchesRes.total > matchesRes.documents.length) {
+      console.warn(`Warning: ${matchesRes.total} matches exist but only ${matchesRes.documents.length} fetched. Pagination not implemented — some matches will be skipped.`);
+    }
     console.log(`Found ${matchesRes.documents.length} matches to update...`);
 
     let matchesUpdated = 0;

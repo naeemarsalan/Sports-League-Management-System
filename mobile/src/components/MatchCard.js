@@ -8,7 +8,7 @@ import { Avatar } from "./Avatar";
 export const MatchCard = ({ match, playersById }) => {
   const player1 = playersById[match.player1Id]?.displayName ?? "Player 1";
   const player2 = playersById[match.player2Id]?.displayName ?? "Player 2";
-  const scoreAvailable = match.scorePlayer1 !== null && match.scorePlayer2 !== null;
+  const scoreAvailable = match.scorePlayer1 != null && match.scorePlayer2 != null;
 
   // Determine winner for highlighting
   let player1Winner = false;

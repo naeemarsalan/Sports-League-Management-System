@@ -45,7 +45,7 @@ export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) =>
           );
           // Filter matches by leagueId client-side
           matchesRes.documents = matchesRes.documents.filter(
-            (m) => m.leagueId === leagueId || !m.leagueId
+            (m) => m.leagueId === leagueId
           );
           members = await getLeagueMembers(leagueId, "approved");
         } catch (fallbackError) {

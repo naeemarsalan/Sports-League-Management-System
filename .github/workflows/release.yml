@@ -19,8 +19,9 @@ jobs:
       - name: Download IPA from release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          gh release download "${{ github.event.release.tag_name }}" \
+          gh release download "$RELEASE_TAG" \
             --pattern '*.ipa' \
             --dir ./release-assets
 
@@ -91,8 +92,9 @@ jobs:
       - name: Update release notes with Diawi link
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          TAG="${{ github.event.release.tag_name }}"
+          TAG="$RELEASE_TAG"
           EXISTING_BODY=$(gh release view "$TAG" --json body -q '.body')
 
           NEW_BODY="${EXISTING_BODY}

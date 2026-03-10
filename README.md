@@ -48,7 +48,7 @@ A full-stack mobile application for managing snooker and pool leagues — built 
 │                   Appwrite v1.8.1 BaaS                    │
 │  ┌─────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
 │  │   Auth       │ │ Database │ │Functions │ │Messaging │  │
-│  │  (email/pw)  │ │ (NoSQL)  │ │(Node 16) │ │(APNs/FCM)│  │
+│  │  (email/pw)  │ │ (NoSQL)  │ │(Node 18) │ │(APNs/FCM)│  │
 │  └─────────────┘ └──────────┘ └──────────┘ └──────────┘  │
 └───────────────────────────────────────────────────────────┘
                            │
@@ -71,7 +71,7 @@ A full-stack mobile application for managing snooker and pool leagues — built 
 | State | Zustand | 5.x |
 | Data fetching | TanStack React Query | 5.x |
 | Backend | Appwrite | 1.8.1 |
-| Functions runtime | Node.js | 16 |
+| Functions runtime | Node.js | 18 |
 | CI/CD | GitHub Actions | self-hosted runner |
 | Build | EAS Build | CLI 16.28+ |
 | Distribution | Diawi | OTA |
@@ -300,7 +300,7 @@ The app uses three Zustand stores:
 
 ## Backend — Appwrite Functions
 
-All functions run on the **Node.js 16** runtime and are deployed to Appwrite as serverless functions.
+All functions run on the **Node.js 18** runtime and are deployed to Appwrite as serverless functions.
 
 ### league-api
 
@@ -603,11 +603,11 @@ npm test
 
 | Service | URL | Notes |
 |---------|-----|-------|
-| Appwrite | `https://appwrite.arsalan.io` | v1.8.1, project `696436a5002d6f83aed7` |
-| Grafana | `http://172.16.2.252:3000` | Infrastructure monitoring dashboard |
-| Prometheus | `http://172.16.2.252:9090` | K8s metrics (14 targets) |
+| Appwrite | See `APPWRITE_ENDPOINT` env var | v1.8.1 |
+| Grafana | See internal docs | Infrastructure monitoring dashboard |
+| Prometheus | See internal docs | K8s metrics |
 
-**Monitoring:** A Grafana dashboard tracks container resources, HTTP/API server metrics, node metrics, network, and K8s API server/etcd. Appwrite application-level metrics (function executions, etc.) are not currently available in Prometheus.
+**Monitoring:** A Grafana dashboard tracks container resources, HTTP/API server metrics, node metrics, network, and K8s API server/etcd. Appwrite application-level metrics (function executions, etc.) are not currently available in Prometheus. See internal documentation for access details.
 
 ---
 

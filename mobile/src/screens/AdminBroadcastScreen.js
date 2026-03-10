@@ -61,13 +61,14 @@ export const AdminBroadcastScreen = ({ navigation }) => {
         return;
       }
 
-      for (const member of members) {
+      const promises = members.map((member) =>
         sendPushNotification("admin_broadcast", member.userId, {
           title: title.trim(),
           message: message.trim(),
           leagueName: currentLeague?.name,
-        }, currentLeagueId);
-      }
+        }, currentLeagueId)
+      );
+      await Promise.all(promises);
 
       // Refresh quota after sending
       getLeagueNotificationQuota(currentLeagueId, currentLeague?.notificationLimit || 50).then(setQuota);

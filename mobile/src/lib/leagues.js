@@ -34,6 +34,7 @@ export const createLeague = async ({ name, description, createdBy, pointsPerWin,
     leagueData: {
       name,
       description,
+      createdBy,
       pointsPerWin,
       pointsPerDraw,
       pointsPerLoss,

@@ -71,7 +71,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await requestToJoinLeague(foundLeague.$id, user.$id, profile?.displayName);
+      await requestToJoinLeague(foundLeague.$id, profile?.displayName);
       fetchUserLeagues(user.$id);
 
       Alert.alert(

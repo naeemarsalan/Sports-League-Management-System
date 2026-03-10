@@ -115,7 +115,7 @@ function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
     if (b.wins !== a.wins) {
       return b.wins - a.wins;
     }
-    return a.name.localeCompare(b.name);
+    return (a.name || "").localeCompare(b.name || "");
   });
 }
 
@@ -153,7 +153,7 @@ module.exports = async function handler({ req, res, log, error }) {
     } else if (log) {
       log(err);
     }
-    return res.json({ error: err.message }, 500);
+    return res.json({ error: "Internal server error" }, 500);
   }
 };
 

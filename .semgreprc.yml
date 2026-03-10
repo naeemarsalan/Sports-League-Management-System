@@ -14,7 +14,7 @@ rules:
     patterns:
       - pattern: |
           `... ${$DATA. ...} ...`
-        metavariable-regex:
+      - metavariable-regex:
           metavariable: $DATA
           regex: (data|body|req\.body|params)
     message: >

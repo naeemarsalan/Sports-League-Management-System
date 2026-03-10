@@ -86,16 +86,30 @@ const toJsonQuery = (q) => {
   const match = q.match(/^(\w+)\("([^"]+)",\s*\[(.+)\]\)$/);
   if (!match) return q;
   const [, method, attribute, rawValues] = match;
-  // Parse the values array — handles strings and numbers
-  const values = rawValues.split(",").map((v) => {
-    v = v.trim();
-    if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1);
+  // Parse the values array — split respecting quoted strings
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < rawValues.length; i++) {
+    const ch = rawValues[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.length > 0) values.push(current.trim());
+
+  const parsed = values.map((v) => {
     if (v === "true") return true;
     if (v === "false") return false;
     const n = Number(v);
     return Number.isNaN(n) ? v : n;
   });
-  return JSON.stringify({ method, attribute, values });
+  return JSON.stringify({ method, attribute, values: parsed });
 };
 
 const listDocuments = async (collection, queries = []) => {

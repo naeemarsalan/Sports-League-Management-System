@@ -31,14 +31,17 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
       );
       documents = response.documents;
     } catch (error) {
-      // Fallback: fetch all and filter client-side (for legacy matches without leagueId)
+      // Only fall back for attribute-not-found errors (legacy matches without leagueId attribute)
+      if (error.code !== 400 && !error.message?.includes("attribute")) {
+        throw error;
+      }
       console.warn("Falling back to client-side league filtering:", error.message);
       const response = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.matchesCollectionId,
         queries
       );
-      documents = response.documents.filter((m) => m.leagueId === leagueId || !m.leagueId);
+      documents = response.documents.filter((m) => m.leagueId === leagueId);
     }
   } else {
     const response = await databases.listDocuments(

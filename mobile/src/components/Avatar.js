@@ -60,7 +60,7 @@ export const Avatar = ({
           borderRadius: size / 2,
         },
         showBorder && styles.border,
-        rank && rank <= 3 && {
+        rank != null && rank <= 3 && {
           borderWidth: 2,
           borderColor: rankStyle.borderColor,
           shadowColor: rankStyle.shadowColor,
@@ -77,12 +77,12 @@ export const Avatar = ({
         end={{ x: 1, y: 1 }}
         style={[
           styles.gradient,
-          { borderRadius: size / 2 - (rank && rank <= 3 ? 2 : 0) },
+          { borderRadius: size / 2 - (rank != null && rank <= 3 ? 2 : 0) },
         ]}
       >
         <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
       </LinearGradient>
-      {rank && rank <= 3 && (
+      {rank != null && rank <= 3 && (
         <View
           style={[
             styles.rankBadge,

@@ -27,7 +27,7 @@
                 "email-password": true
             },
             "security": {
-                "duration": 31536000,
+                "duration": 2592000,
                 "limit": 0,
                 "sessionsLimit": 10,
                 "passwordHistory": 0,
