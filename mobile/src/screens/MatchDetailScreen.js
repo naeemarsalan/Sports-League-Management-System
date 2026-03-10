@@ -67,7 +67,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
     const parsedScore1 = Number(score1);
     const parsedScore2 = Number(score2);
     if (Number.isNaN(parsedScore1) || Number.isNaN(parsedScore2)) {
-      Alert.alert("Invalid", "Scores must be numbers.");
+      Alert.alert("Invalid", "Frames must be numbers.");
       return;
     }
     try {
@@ -98,7 +98,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
         }).catch(() => {});
       }
 
-      Alert.alert("Updated", "Score submitted.");
+      Alert.alert("Updated", "Result submitted.");
       navigation.goBack();
     } catch (error) {
       Alert.alert("Update failed", error.message);
@@ -130,10 +130,10 @@ export const MatchDetailScreen = ({ route, navigation }) => {
           <Button title="Update schedule" onPress={handleSchedule} disabled={!canEdit} />
         </Card>
         <Card>
-          <Text style={styles.section}>Enter score</Text>
-          <Input label={`${player1} score`} value={score1} onChangeText={setScore1} placeholder="0" testID="input-score-p1" />
-          <Input label={`${player2} score`} value={score2} onChangeText={setScore2} placeholder="0" testID="input-score-p2" />
-          <Button title="Submit score" onPress={handleScore} disabled={!canEdit} testID="btn-submit-score" />
+          <Text style={styles.section}>Enter frames won</Text>
+          <Input label={`${player1} frames won`} value={score1} onChangeText={setScore1} placeholder="0" testID="input-score-p1" />
+          <Input label={`${player2} frames won`} value={score2} onChangeText={setScore2} placeholder="0" testID="input-score-p2" />
+          <Button title="Submit result" onPress={handleScore} disabled={!canEdit} testID="btn-submit-score" />
         </Card>
         {!canEdit ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
       </Screen>
