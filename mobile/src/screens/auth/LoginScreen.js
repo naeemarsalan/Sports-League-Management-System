@@ -34,7 +34,8 @@ export const LoginScreen = ({ navigation }) => {
       />
       <Button title={loading ? "Signing in..." : "Sign In"} onPress={handleLogin} disabled={loading} testID="btn-login" />
       <TouchableOpacity onPress={() => navigation.navigate("Register")}
-        style={{ marginTop: 16 }}>
+        style={{ marginTop: 16 }}
+        testID="link-register">
         <Text style={{ color: colors.textSecondary }}>
           New here? <Text style={{ color: colors.accent }}>Create an account</Text>
         </Text>

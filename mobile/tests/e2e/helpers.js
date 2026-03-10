@@ -64,7 +64,7 @@ function getAdminClient() {
  */
 async function createTestUser(prefix = "e2e") {
   const admin = getAdminClient();
-  const rand = Math.random().toString(36).slice(2, 8);
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b.toString(36)).join("").slice(0, 8);
   const email = `${prefix}-${Date.now()}-${rand}@test.local`;
   const password = "TestPass1234!";
   const displayName = `Test ${prefix} ${rand}`;

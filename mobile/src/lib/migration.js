@@ -4,10 +4,12 @@ import { databases, ID, Query, appwriteConfig } from "./appwrite";
  * Generate a random 6-character invite code
  */
 const generateInviteCode = () => {
+  const array = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(array);
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(array[i] % chars.length);
   }
   return code;
 };
@@ -58,13 +60,21 @@ export const migrateToMultiLeague = async (adminUserId) => {
       console.log(`Created default league: ${defaultLeague.$id}`);
     }
 
-    // Step 2: Get all profiles
-    const profilesRes = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.profilesCollectionId,
-      [Query.limit(500)]
-    );
-
+    // Step 2: Get all profiles (paginated)
+    const allProfiles = [];
+    const PAGE_SIZE = 500;
+    let profileOffset = 0;
+    while (true) {
+      const profilesRes = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.profilesCollectionId,
+        [Query.limit(PAGE_SIZE), Query.offset(profileOffset)]
+      );
+      allProfiles.push(...profilesRes.documents);
+      if (profilesRes.documents.length < PAGE_SIZE) break;
+      profileOffset += PAGE_SIZE;
+    }
+    const profilesRes = { documents: allProfiles, total: allProfiles.length };
     console.log(`Found ${profilesRes.documents.length} profiles to migrate...`);
 
     // Step 3: Add each profile as a league member
@@ -117,17 +127,25 @@ export const migrateToMultiLeague = async (adminUserId) => {
       appwriteConfig.leaguesCollectionId,
       defaultLeague.$id,
       {
-        memberCount: profilesRes.documents.length,
+        memberCount: profilesRes.total,
       }
     );
 
-    // Step 5: Update all matches with leagueId
-    const matchesRes = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.matchesCollectionId,
-      [Query.limit(1000)]
-    );
-
+    // Step 5: Update all matches with leagueId (paginated)
+    const allMatches = [];
+    let matchOffset = 0;
+    const MATCH_PAGE_SIZE = 500;
+    while (true) {
+      const page = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.matchesCollectionId,
+        [Query.limit(MATCH_PAGE_SIZE), Query.offset(matchOffset)]
+      );
+      allMatches.push(...page.documents);
+      if (page.documents.length < MATCH_PAGE_SIZE) break;
+      matchOffset += MATCH_PAGE_SIZE;
+    }
+    const matchesRes = { documents: allMatches, total: allMatches.length };
     console.log(`Found ${matchesRes.documents.length} matches to update...`);
 
     let matchesUpdated = 0;

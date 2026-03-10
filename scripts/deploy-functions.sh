@@ -20,7 +20,7 @@ FUNCTIONS_DIR="$PROJECT_ROOT/appwrite/functions"
 : "${APPWRITE_ENDPOINT:=https://appwrite.arsalan.io/v1}"
 : "${APPWRITE_PROJECT_ID:=696436a5002d6f83aed7}"
 : "${PUSH_PROVIDER_ID:=expo-push}"
-: "${NODE_RUNTIME:=node-16.0}"
+: "${NODE_RUNTIME:=node-18.0}"
 
 if [ -z "${APPWRITE_API_KEY:-}" ]; then
   echo "ERROR: APPWRITE_API_KEY is required."

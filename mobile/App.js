@@ -49,8 +49,21 @@ function SafeAreaProviderCompat({ children }) {
 const navigateToMatch = async (matchId) => {
   try {
     const match = await getMatch(matchId);
+    // Fetch player profiles so names display correctly
+    const playersById = {};
+    const { databases: db, appwriteConfig: cfg } = require("./src/lib/appwrite");
+    for (const pid of [match.player1Id, match.player2Id]) {
+      if (pid) {
+        try {
+          const doc = await db.getDocument(cfg.databaseId, cfg.profilesCollectionId, pid);
+          playersById[pid] = doc;
+        } catch {
+          // Profile not found — will fall back to default name
+        }
+      }
+    }
     if (navigationRef.isReady()) {
-      navigationRef.navigate("MatchDetail", { match, playersById: {} });
+      navigationRef.navigate("MatchDetail", { match, playersById });
     }
   } catch (error) {
     console.warn("Failed to navigate to match:", error.message);
@@ -91,8 +104,8 @@ function NotificationHandler() {
 
   useEffect(() => {
     if (user && !hasRegistered.current) {
-      hasRegistered.current = true;
       registerForPushNotifications().then((token) => {
+        hasRegistered.current = true;
         if (token) {
           savePushToken(user.$id, token);
         }

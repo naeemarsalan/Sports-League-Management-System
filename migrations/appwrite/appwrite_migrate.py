@@ -109,14 +109,15 @@ def parse_copy_blocks(path: str) -> Dict[str, List[Dict[str, Any]]]:
                 if not row_line:
                     break
                 row_line = row_line.rstrip("\n")
-                if row_line.strip() == r"\\.":
+                if row_line.strip() == "\\.":
                     break
 
                 parsed = next(csv.reader([row_line], delimiter="\t"))
                 if len(parsed) != len(columns):
-                    break
-                if any(value.strip() == r"\\." for value in parsed):
-                    break
+                    print(f"Warning: skipping malformed row in {table} (expected {len(columns)} cols, got {len(parsed)})")
+                    continue
+                if any(value.strip() == "\\." for value in parsed):
+                    continue
                 row: Dict[str, Any] = {}
                 for col, value in zip(columns, parsed):
                     row[col] = normalize_value(table, col, value)
@@ -177,7 +178,9 @@ def migrate(
 
     players_by_user = {player["user_id"]: player for player in players}
 
-    default_password = os.environ.get("DEFAULT_PASSWORD", "ChangeMe123!")
+    default_password = os.environ.get("DEFAULT_PASSWORD")
+    if not default_password and not client.dry_run:
+        raise SystemExit("Missing required env var: DEFAULT_PASSWORD")
     member_role = os.environ.get("APPWRITE_MEMBER_ROLE", "users")
     admin_role = os.environ.get("APPWRITE_ADMIN_ROLE")
 

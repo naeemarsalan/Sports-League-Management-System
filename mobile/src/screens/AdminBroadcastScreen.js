@@ -24,7 +24,7 @@ export const AdminBroadcastScreen = ({ navigation }) => {
   // Fetch quota on mount
   useEffect(() => {
     if (currentLeagueId && canBroadcast) {
-      getLeagueNotificationQuota(currentLeagueId, currentLeague?.notificationLimit || 50).then(setQuota);
+      getLeagueNotificationQuota(currentLeagueId, currentLeague?.notificationLimit ?? 50).then(setQuota);
     }
   }, [currentLeagueId, canBroadcast]);
 
@@ -61,20 +61,21 @@ export const AdminBroadcastScreen = ({ navigation }) => {
         return;
       }
 
-      for (const member of members) {
+      const promises = members.map((member) =>
         sendPushNotification("admin_broadcast", member.userId, {
           title: title.trim(),
           message: message.trim(),
           leagueName: currentLeague?.name,
-        }, currentLeagueId);
-      }
+        }, currentLeagueId)
+      );
+      await Promise.all(promises);
 
       // Refresh quota after sending
-      getLeagueNotificationQuota(currentLeagueId, currentLeague?.notificationLimit || 50).then(setQuota);
+      getLeagueNotificationQuota(currentLeagueId, currentLeague?.notificationLimit ?? 50).then(setQuota);
 
       Alert.alert(
-        "Sent",
-        `Announcement sent to ${members.length} member${members.length !== 1 ? "s" : ""}.`,
+        "Queued",
+        `Announcement queued for ${members.length} member${members.length !== 1 ? "s" : ""}.`,
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     } catch (error) {

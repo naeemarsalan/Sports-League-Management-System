@@ -83,6 +83,9 @@ module.exports = async ({ req, res, log, error }) => {
       case "regenerateInviteCode":
         result = await handleRegenerateInviteCode(userId, payload, log);
         break;
+      case "createProfile":
+        result = await handleCreateProfile(userId, payload, log);
+        break;
       case "updateProfile":
         result = await handleUpdateProfile(userId, payload, log);
         break;
@@ -276,7 +279,13 @@ async function handleTransferOwnership(userId, { currentOwnerMembershipId, newOw
   if (currentOwner.leagueId !== newOwner.leagueId) throw badRequest("Members must be in the same league");
 
   await updateDocument(MEMBERS, currentOwnerMembershipId, { role: "admin" });
-  await updateDocument(MEMBERS, newOwnerMembershipId, { role: "owner" });
+  try {
+    await updateDocument(MEMBERS, newOwnerMembershipId, { role: "owner" });
+  } catch (err) {
+    // Rollback: restore the original owner's role
+    await updateDocument(MEMBERS, currentOwnerMembershipId, { role: "owner" });
+    throw err;
+  }
   log(`Ownership transferred from ${currentOwnerMembershipId} to ${newOwnerMembershipId} by ${userId}`);
 
   return { transferred: true };
@@ -308,7 +317,13 @@ async function handleRequestToJoin(userId, { leagueId, requesterName }, log) {
   const existing = await getCallerMembership(userId, leagueId);
   if (existing) {
     if (existing.status === "approved") throw badRequest("Already a member of this league");
-    throw badRequest("Join request already pending");
+    if (existing.status === "rejected") {
+      // Allow re-requesting by deleting the old rejected record
+      await deleteDocument(MEMBERS, existing.$id);
+      log(`Deleted rejected membership ${existing.$id} so user ${userId} can re-request`);
+    } else {
+      throw badRequest("Join request already pending");
+    }
   }
 
   const doc = await createDocument(MEMBERS, {
@@ -433,6 +448,18 @@ async function handleRegenerateInviteCode(userId, { leagueId }, log) {
   return updated;
 }
 
+async function handleCreateProfile(userId, { profileData }, log) {
+  if (!profileData || !profileData.displayName) throw badRequest("profileData with displayName is required");
+
+  const profile = await createDocument(PROFILES, {
+    userId,
+    displayName: profileData.displayName,
+    role: profileData.role || "player",
+  });
+  log(`Profile ${profile.$id} created for user ${userId}`);
+  return profile;
+}
+
 async function handleUpdateProfile(userId, { profileId, profileData }, log) {
   if (!profileId || !profileData) throw badRequest("profileId and profileData are required");
 
@@ -480,10 +507,12 @@ async function incrementMemberCount(leagueId, delta) {
 }
 
 function generateInviteCode() {
+  const crypto = require("crypto");
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.randomBytes(6);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }

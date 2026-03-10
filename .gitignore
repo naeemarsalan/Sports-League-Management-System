@@ -61,6 +61,7 @@ lerna-debug.log*
 
 # Keys and certificates
 *.pem
+appwrite.cres
 
 # Security scanning reports
 bandit-report.json
@@ -69,6 +70,9 @@ gitleaks-report.json
 
 # MCP configuration (may contain API keys)
 .mcp.json
+
+# Database dumps (may contain PII and password hashes)
+data/pool_league_backup.sql
 
 # Python (scripts)
 __pycache__/

@@ -17,7 +17,7 @@ export const sendPushNotification = async (type, userId, data, leagueId = null) 
     await functions.createExecution(
       "send-push",
       JSON.stringify(payload),
-      false // async execution
+      true // async execution
     );
   } catch (error) {
     // Log but don't throw - notifications are non-critical
@@ -67,6 +67,25 @@ export const registerForPushNotifications = async () => {
     return null;
   }
 
+  // Configure Android notification channels before requesting permissions
+  // (Android 13+ requires channels to exist before permission prompts)
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "Default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#2ECC71",
+    });
+
+    await Notifications.setNotificationChannelAsync("matches", {
+      name: "Match Updates",
+      description: "Notifications about matches and challenges",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#2ECC71",
+    });
+  }
+
   // Check existing permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -86,24 +105,6 @@ export const registerForPushNotifications = async () => {
     // Get native APNs/FCM device token (not Expo wrapper token)
     const tokenData = await Notifications.getDevicePushTokenAsync();
 
-    // Configure Android notification channel
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#2ECC71",
-      });
-
-      await Notifications.setNotificationChannelAsync("matches", {
-        name: "Match Updates",
-        description: "Notifications about matches and challenges",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#2ECC71",
-      });
-    }
-
     return tokenData.data;
   } catch (error) {
     console.error("Error getting push token:", error);
@@ -121,7 +122,7 @@ export const savePushToken = async (userId, token) => {
     await functions.createExecution(
       "save-push-token",
       JSON.stringify({ userId, token, platform: Platform.OS }),
-      false
+      true // async execution
     );
     console.log("Push token saved successfully");
   } catch (error) {

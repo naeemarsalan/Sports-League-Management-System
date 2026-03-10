@@ -31,7 +31,11 @@ module.exports = async ({ req, res, log, error }) => {
 
   // Verify the caller is the same user they claim to be
   const authenticatedUserId = req.headers["x-appwrite-user-id"];
-  if (authenticatedUserId && authenticatedUserId !== userId) {
+  if (!authenticatedUserId) {
+    error("Missing x-appwrite-user-id header — unauthenticated request");
+    return res.json({ success: false, error: "Authentication required" }, 401);
+  }
+  if (authenticatedUserId !== userId) {
     error(`userId mismatch: authenticated as ${authenticatedUserId}, but requested ${userId}`);
     return res.json({ success: false, error: "userId does not match authenticated user" }, 403);
   }
@@ -95,6 +99,6 @@ module.exports = async ({ req, res, log, error }) => {
 
   } catch (err) {
     error(`Error saving push token: ${err.message}`);
-    return res.json({ success: false, error: err.message }, 500);
+    return res.json({ success: false, error: "Internal server error" }, 500);
   }
 };

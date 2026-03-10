@@ -22,14 +22,13 @@ This project uses the following automated security tools:
 
 | Tool | Purpose | Trigger |
 |------|---------|---------|
-| **Gitleaks** | Secret detection | Push, PR, pre-commit |
-| **Semgrep** | JavaScript/Node.js SAST | Push, PR |
-| **Bandit** | Python SAST | Push, PR |
-| **Trivy** | Config & filesystem scanning | Push, PR |
-| **npm audit** | Dependency vulnerabilities | Push, PR |
-| **OSV Scanner** | Dependency vulnerabilities | Push, PR |
+| **Gitleaks** | Secret detection | PR, pre-commit |
+| **Semgrep** | JavaScript/Node.js SAST | PR |
+| **Bandit** | Python SAST | PR |
+| **Trivy** | Config & filesystem scanning | PR |
+| **npm audit** | Dependency vulnerabilities | PR |
 | **Dependency Review** | New dependency vetting | PR only |
-| **license-checker** | License compliance | Push, PR |
+| **license-checker** | License compliance | PR |
 | **ESLint Security** | JS security linting | Pre-commit |
 
 ## Development Security Guidelines

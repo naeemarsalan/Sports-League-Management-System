@@ -27,6 +27,8 @@ export const DatePicker = ({
   const [show, setShow] = useState(false);
   // For datetime mode: after picking date, pick time
   const [pickerMode, setPickerMode] = useState(mode === "datetime" ? "date" : mode);
+  // Store intermediate date in datetime mode (only call parent onChange after both date and time)
+  const [pendingDate, setPendingDate] = useState(null);
 
   const displayText = value
     ? mode === "datetime"
@@ -56,8 +58,8 @@ export const DatePicker = ({
     if (!selectedDate) return;
 
     if (mode === "datetime" && pickerMode === "date") {
-      // First step done (date selected), now pick time
-      onChange(selectedDate);
+      // First step done (date selected), store in local state — don't call parent yet
+      setPendingDate(selectedDate);
       if (Platform.OS === "android") {
         // Android shows separate dialogs — open time picker next
         setTimeout(() => {
@@ -66,6 +68,15 @@ export const DatePicker = ({
         }, 100);
       } else {
         setPickerMode("time");
+      }
+    } else if (mode === "datetime" && pickerMode === "time") {
+      // Second step done (time selected) — combine with pending date and call parent
+      const combined = pendingDate ? new Date(pendingDate) : new Date();
+      combined.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+      setPendingDate(null);
+      onChange(combined);
+      if (Platform.OS !== "ios") {
+        setShow(false);
       }
     } else {
       onChange(selectedDate);

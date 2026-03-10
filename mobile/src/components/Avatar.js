@@ -24,11 +24,11 @@ const getColorFromName = (name) => {
 
 const getInitials = (name) => {
   if (!name) return "?";
-  const parts = name.trim().split(" ");
+  const parts = name.trim().split(" ").filter((p) => p.length > 0);
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0].trim()[0] + parts[parts.length - 1].trim()[0]).toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return name.trim().substring(0, 2).toUpperCase();
 };
 
 export const Avatar = ({
@@ -60,7 +60,7 @@ export const Avatar = ({
           borderRadius: size / 2,
         },
         showBorder && styles.border,
-        rank && rank <= 3 && {
+        rank != null && rank <= 3 && {
           borderWidth: 2,
           borderColor: rankStyle.borderColor,
           shadowColor: rankStyle.shadowColor,
@@ -77,12 +77,12 @@ export const Avatar = ({
         end={{ x: 1, y: 1 }}
         style={[
           styles.gradient,
-          { borderRadius: size / 2 - (rank && rank <= 3 ? 2 : 0) },
+          { borderRadius: size / 2 - (rank != null && rank <= 3 ? 2 : 0) },
         ]}
       >
         <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
       </LinearGradient>
-      {rank && rank <= 3 && (
+      {rank != null && rank <= 3 && (
         <View
           style={[
             styles.rankBadge,

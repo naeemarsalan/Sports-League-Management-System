@@ -1,4 +1,4 @@
-import { databases, ID, Query, appwriteConfig, callLeagueApi } from "./appwrite";
+import { databases, Query, appwriteConfig, callLeagueApi } from "./appwrite";
 
 export const getProfileByUserId = async (userId) => {
   const response = await databases.listDocuments(
@@ -18,12 +18,9 @@ export const listProfiles = async () => {
 };
 
 export const createProfile = async ({ userId, displayName, role }) => {
-  return databases.createDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.profilesCollectionId,
-    ID.unique(),
-    { userId, displayName, role }
-  );
+  return callLeagueApi("createProfile", {
+    profileData: { displayName, role },
+  });
 };
 
 /**

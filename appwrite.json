@@ -5,7 +5,7 @@
     {
       "$id": "save-push-token",
       "name": "save-push-token",
-      "runtime": "node-16.0",
+      "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
       "execute": ["users"],
@@ -20,7 +20,7 @@
     {
       "$id": "send-push",
       "name": "send-push",
-      "runtime": "node-16.0",
+      "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
       "execute": ["users"],
@@ -37,10 +37,10 @@
     {
       "$id": "migrate-matches",
       "name": "migrate-matches",
-      "runtime": "node-16.0",
+      "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
-      "execute": ["users"],
+      "execute": [],
       "path": "appwrite/functions/migrate-matches",
       "variables": {
         "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
@@ -51,7 +51,7 @@
     {
       "$id": "delete-account",
       "name": "delete-account",
-      "runtime": "node-16.0",
+      "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
       "execute": ["users"],
@@ -70,7 +70,7 @@
     {
       "$id": "league-api",
       "name": "league-api",
-      "runtime": "node-16.0",
+      "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
       "execute": ["users"],

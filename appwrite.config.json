@@ -21,13 +21,13 @@
                 "jwt": true,
                 "phone": true,
                 "invites": true,
-                "anonymous": true,
+                "anonymous": false,
                 "email-otp": true,
                 "magic-url": true,
                 "email-password": true
             },
             "security": {
-                "duration": 31536000,
+                "duration": 2592000,
                 "limit": 0,
                 "sessionsLimit": 10,
                 "passwordHistory": 0,
@@ -49,9 +49,7 @@
         {
             "$id": "profiles",
             "$permissions": [
-                "read(\"users\")",
-                "create(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "Profiles",
@@ -119,9 +117,7 @@
         {
             "$id": "matches",
             "$permissions": [
-                "read(\"users\")",
-                "create(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "Matches",
@@ -248,9 +244,7 @@
         {
             "$id": "leagues",
             "$permissions": [
-                "read(\"users\")",
-                "create(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "Leagues",
@@ -342,9 +336,7 @@
         {
             "$id": "league_members",
             "$permissions": [
-                "read(\"users\")",
-                "create(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "pool-league",
             "name": "League Members",
