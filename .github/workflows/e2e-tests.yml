@@ -27,3 +27,10 @@ jobs:
         run: npm run test:e2e
         env:
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+
+  security:
+    needs: e2e-tests
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      security-events: write
