@@ -46,7 +46,7 @@ fi
 # Ensure a default repo is set (needed for gh release)
 REMOTE_URL=$(git -C "$PROJECT_ROOT" remote get-url origin 2>/dev/null || true)
 if [ -n "$REMOTE_URL" ]; then
-  REPO_SLUG=$(echo "$REMOTE_URL" | sed -E 's#.*github\.com[:/](.+?)(.git)?$#\1#' | sed 's/\.git$//')
+  REPO_SLUG=$(echo "$REMOTE_URL" | sed -E 's#.*github\.com[:/]##' | sed 's/\.git$//')
   gh repo set-default "$REPO_SLUG" 2>/dev/null || true
 fi
 
