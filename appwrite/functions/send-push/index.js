@@ -50,13 +50,6 @@ module.exports = async ({ req, res, log, error }) => {
     return res.json({ success: false, error: "Authentication required" }, 401);
   }
 
-  // Recipient authorization: user-session callers can only send to themselves
-  // unless they are an admin/mod. API-key calls (function-to-function) skip this check.
-  if (authenticatedUserId && !isApiKeyCall && authenticatedUserId !== userId) {
-    error(`User ${authenticatedUserId} attempted to send notification to ${userId}`);
-    return res.json({ success: false, error: "Not authorized to send to this user" }, 403);
-  }
-
   // Sanitize user-provided strings to prevent injection
   const sanitize = (str, maxLength = 200) => {
     if (typeof str !== "string") return str;
@@ -142,6 +135,14 @@ module.exports = async ({ req, res, log, error }) => {
     } else {
       // Maybe it's already an auth user ID — try it directly
       log(`Profile lookup failed for ${userId}, trying as auth user ID`);
+    }
+
+    // Recipient authorization: user-session callers can only send to themselves.
+    // Checked after profile lookup so we compare Auth IDs (not profile doc ID vs Auth ID).
+    // API-key calls (function-to-function) skip this check.
+    if (authenticatedUserId && !isApiKeyCall && authenticatedUserId !== authUserId) {
+      error(`User ${authenticatedUserId} attempted to send notification to ${userId}`);
+      return res.json({ success: false, error: "Not authorized to send to this user" }, 403);
     }
 
     // Get user's push targets

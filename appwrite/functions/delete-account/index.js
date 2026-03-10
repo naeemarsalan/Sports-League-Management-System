@@ -77,7 +77,7 @@ module.exports = async ({ req, res, log, error }) => {
         while (true) {
           const membersUrl = `${endpoint}/databases/${databaseId}/collections/${leagueMembersCollectionId}/documents?queries[]=${encodeURIComponent(JSON.stringify(["equal(\"userId\", [\"" + userId + "\"])"])) }&queries[]=${encodeURIComponent(JSON.stringify({ method: "limit", values: [MEMBER_LIMIT] }))}&queries[]=${encodeURIComponent(JSON.stringify({ method: "offset", values: [memberOffset] }))}`;
           const membersRes = await fetch(membersUrl, { headers });
-          if (!membersRes.ok) break;
+          if (!membersRes.ok) throw new Error("Failed to fetch memberships page");
           const membersData = await membersRes.json();
           const docs = membersData.documents || [];
           allMemberships.push(...docs);

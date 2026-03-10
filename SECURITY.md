@@ -24,7 +24,7 @@ This project uses the following automated security tools:
 |------|---------|---------|
 | **Gitleaks** | Secret detection | PR, pre-commit |
 | **Semgrep** | JavaScript/Node.js SAST | PR |
-| **Bandit** | Python SAST | PR |
+| **Bandit** | Python SAST | PR, pre-commit |
 | **Trivy** | Config & filesystem scanning | PR |
 | **npm audit** | Dependency vulnerabilities | PR |
 | **Dependency Review** | New dependency vetting | PR only |

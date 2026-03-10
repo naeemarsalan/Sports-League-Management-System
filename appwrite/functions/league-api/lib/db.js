@@ -107,7 +107,7 @@ const toJsonQuery = (q) => {
       current += ch;
     }
   }
-  if (current.length > 0) {
+  if (current.length > 0 || currentQuoted) {
     values.push(current.trim());
     wasQuoted.push(currentQuoted);
   }

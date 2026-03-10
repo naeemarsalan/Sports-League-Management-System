@@ -83,8 +83,8 @@ function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
         return;
       }
 
-      const entry1 = ensureStanding(standings, match.player1Id, player1.displayName);
-      const entry2 = ensureStanding(standings, match.player2Id, player2.displayName);
+      const entry1 = ensureStanding(standings, player1.$id, player1.displayName);
+      const entry2 = ensureStanding(standings, player2.$id, player2.displayName);
 
       entry1.gamesPlayed += 1;
       entry2.gamesPlayed += 1;
