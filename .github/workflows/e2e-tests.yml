@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: mobile
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --legacy-peer-deps
 
       - name: Run E2E smoke tests
         working-directory: mobile
