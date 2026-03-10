@@ -10,6 +10,7 @@ jobs:
   e2e-tests:
     runs-on: self-hosted
     timeout-minutes: 10
+    environment: APPWRITE_API_KEY
 
     steps:
       - uses: actions/checkout@v4
