@@ -1,0 +1,87 @@
+{
+  "projectId": "696436a5002d6f83aed7",
+  "projectName": "snookerpoolleague",
+  "functions": [
+    {
+      "$id": "save-push-token",
+      "name": "save-push-token",
+      "runtime": "node-18.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/save-push-token",
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": "",
+        "PUSH_PROVIDER_ID": "apns-push"
+      }
+    },
+    {
+      "$id": "send-push",
+      "name": "send-push",
+      "runtime": "node-18.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/send-push",
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": "",
+        "PUSH_PROVIDER_ID": "apns-push",
+        "APPWRITE_DATABASE_ID": "pool-league",
+        "APPWRITE_PROFILES_COLLECTION_ID": "profiles"
+      }
+    },
+    {
+      "$id": "migrate-matches",
+      "name": "migrate-matches",
+      "runtime": "node-18.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/migrate-matches",
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": ""
+      }
+    },
+    {
+      "$id": "delete-account",
+      "name": "delete-account",
+      "runtime": "node-18.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/delete-account",
+      "timeout": 30,
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": "",
+        "APPWRITE_DATABASE_ID": "pool-league",
+        "APPWRITE_PROFILES_COLLECTION_ID": "profiles",
+        "APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID": "league_members",
+        "APPWRITE_LEAGUES_COLLECTION_ID": "leagues"
+      }
+    },
+    {
+      "$id": "league-api",
+      "name": "league-api",
+      "runtime": "node-18.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/league-api",
+      "timeout": 30,
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": "",
+        "APPWRITE_DATABASE_ID": "pool-league"
+      }
+    }
+  ]
+}

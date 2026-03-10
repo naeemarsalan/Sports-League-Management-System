@@ -1,0 +1,9 @@
+# Security scanning is now part of the CI Pipeline workflow (e2e-tests.yml).
+# This file is kept empty to avoid orphaned workflow errors.
+name: Security Scanning (deprecated)
+on: workflow_dispatch
+jobs:
+  noop:
+    runs-on: self-hosted
+    steps:
+      - run: echo "Security scanning has moved to the CI Pipeline workflow."

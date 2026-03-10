@@ -1,0 +1,29 @@
+Session Summary
+
+Scope & Goals
+- Recreated the legacy league app using Appwrite as backend, preserving schema and migrating 2025 test data.
+- Built a modern Expo React Native client with a dark green sports-league theme for web/iOS/Android.
+
+Backend (Appwrite)
+- Appwrite database/collections created: profiles + matches with matching fields.
+- Data migration from SQL dump completed (16 users, 56 matches).
+- Leaderboard Appwrite Function built, deployed, and verified via CLI execution.
+
+Scripts & Functions Added
+- migrations/appwrite/appwrite_setup.py: creates database, collections, attributes, indexes.
+- migrations/appwrite/appwrite_migrate.py: parses SQL dump and migrates users/profiles/matches.
+- appwrite/functions/leaderboard/index.js + package.json: on-demand leaderboard function.
+
+Mobile App (Expo)
+- New Expo app created in mobile/ with Appwrite SDK, React Navigation, React Query, Zustand.
+- Screens implemented: auth, dashboard, matches, match detail (schedule/score), leaderboard, profile, admin (manage players, create match).
+- Shared UI components and dark theme tokens added.
+- Appwrite configuration embedded in mobile/app.json extra section.
+
+Build/Test
+- expo web start attempted; installed react-dom and react-native-web to satisfy web deps.
+- expo start --web ran but exceeded tool timeout (server continues locally).
+
+Notes
+- Leaderboard function successfully executed, returning sorted standings.
+- Appwrite CLI used for function creation/deployment and test execution.

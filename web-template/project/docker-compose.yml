@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: snooker-pool-league-web
+    ports:
+      - "8080:3000"
+    environment:
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY}
+    restart: unless-stopped

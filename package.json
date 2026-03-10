@@ -1,0 +1,17 @@
+{
+  "name": "sports-league-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sports League Management System - root workspace for security tooling",
+  "scripts": {
+    "security:audit:all": "for dir in mobile web appwrite/functions/save-push-token appwrite/functions/send-push .; do echo \"\\n--- Auditing $dir ---\"; (cd \"$dir\" && [ -f package.json ] && npm audit --audit-level=high) || true; done",
+    "security:semgrep": "semgrep scan --config p/javascript --config p/nodejs --config p/owasp-top-ten --config .semgreprc.yml --error --exclude='node_modules' --exclude='*.lock' --exclude='.expo'",
+    "security:gitleaks": "gitleaks detect --source . --config .gitleaks.toml -v",
+    "security:all": "npm run security:audit:all && npm run security:semgrep && npm run security:gitleaks",
+    "precommit:install": "pre-commit install"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-security": "^3.0.0"
+  }
+}
