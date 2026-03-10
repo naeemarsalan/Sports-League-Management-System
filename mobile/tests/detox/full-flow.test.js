@@ -359,8 +359,12 @@ describe("Full League Flow", () => {
     // Wait for role update to complete
     await delay(2000);
 
-    // Go back to dashboard
-    await device.pressBack();
+    // Navigate back to dashboard by tapping native back button
+    await element(by.label("Back")).atIndex(0).tap();
+
+    await waitFor(element(by.id("dashboard-container")))
+      .toBeVisible()
+      .withTimeout(10000);
   });
 
   // ─── Step 13: Schedule a match (User 1 vs User 2) ──────────
