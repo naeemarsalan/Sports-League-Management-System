@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: mobile
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run E2E smoke tests
         working-directory: mobile
@@ -34,3 +34,4 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    secrets: inherit
