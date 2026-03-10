@@ -167,6 +167,7 @@ export const DashboardScreen = ({ navigation }) => {
 
   return (
     <Screen
+      testID="dashboard-container"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}

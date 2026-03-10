@@ -113,6 +113,7 @@ export const CreateLeagueScreen = ({ navigation }) => {
           onChangeText={setName}
           placeholder="e.g., Friday Night Pool League"
           autoCapitalize="words"
+          testID="input-league-name"
         />
 
         <Input
@@ -200,6 +201,7 @@ export const CreateLeagueScreen = ({ navigation }) => {
           title={loading ? "Creating..." : "Create League"}
           onPress={handleCreate}
           disabled={loading || !name.trim()}
+          testID="btn-submit-create-league"
         />
         <Button title="Cancel" variant="outline" onPress={() => navigation.goBack()} />
       </View>

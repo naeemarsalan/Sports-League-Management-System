@@ -1,0 +1,9 @@
+{
+  "name": "league-api",
+  "version": "1.0.0",
+  "description": "Server-side RBAC enforcement for league operations",
+  "main": "index.js",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

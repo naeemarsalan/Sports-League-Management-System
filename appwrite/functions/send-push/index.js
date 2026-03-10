@@ -42,10 +42,10 @@ module.exports = async ({ req, res, log, error }) => {
     return res.json({ success: false, error: "type and userId are required" }, 400);
   }
 
-  // Verify the caller is authenticated
+  // Verify the caller is authenticated (user session or API key from other functions)
   const authenticatedUserId = req.headers["x-appwrite-user-id"];
-  if (!authenticatedUserId) {
-    error("Unauthenticated request — no x-appwrite-user-id header");
+  if (!authenticatedUserId && !req.headers["x-appwrite-key"]) {
+    error("Unauthenticated request — no x-appwrite-user-id or x-appwrite-key header");
     return res.json({ success: false, error: "Authentication required" }, 401);
   }
 

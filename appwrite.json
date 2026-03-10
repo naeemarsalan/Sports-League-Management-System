@@ -56,14 +56,31 @@
       "commands": "npm install",
       "execute": ["users"],
       "path": "appwrite/functions/delete-account",
+      "timeout": 30,
       "variables": {
         "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
         "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
-        "APPWRITE_API_KEY": "standard_26bc327d537b38466382e9d1809a9bf2b24d8882eb8241a54805553a95b1fa2b17c857fe0e0fa1a8461597f802934b9338a6fb418d29d07cc4e475f5c33fabfd040838550933c6938b07e7179568b42918ea07f4fce7bdca65026d64866c5ee24d6fdce0c35b118f5b7b31baedade92dcf2520a5c85906aee569e63296759284",
+        "APPWRITE_API_KEY": "",
         "APPWRITE_DATABASE_ID": "pool-league",
         "APPWRITE_PROFILES_COLLECTION_ID": "profiles",
         "APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID": "league_members",
         "APPWRITE_LEAGUES_COLLECTION_ID": "leagues"
+      }
+    },
+    {
+      "$id": "league-api",
+      "name": "league-api",
+      "runtime": "node-16.0",
+      "entrypoint": "index.js",
+      "commands": "npm install",
+      "execute": ["users"],
+      "path": "appwrite/functions/league-api",
+      "timeout": 30,
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",
+        "APPWRITE_PROJECT_ID": "696436a5002d6f83aed7",
+        "APPWRITE_API_KEY": "",
+        "APPWRITE_DATABASE_ID": "pool-league"
       }
     }
   ]

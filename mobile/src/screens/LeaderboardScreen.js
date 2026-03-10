@@ -101,7 +101,7 @@ export const LeaderboardScreen = () => {
     <Screen scroll={false} style={{ paddingBottom: 0 }}>
       <Text style={styles.screenTitle}>STANDINGS</Text>
 
-      <View style={styles.tableContainer}>
+      <View style={styles.tableContainer} testID="leaderboard-table">
         <TableHeader showFrames={showFrames} />
         <FlatList
           data={data}

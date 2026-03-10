@@ -131,9 +131,9 @@ export const MatchDetailScreen = ({ route, navigation }) => {
         </Card>
         <Card>
           <Text style={styles.section}>Enter score</Text>
-          <Input label={`${player1} score`} value={score1} onChangeText={setScore1} placeholder="0" />
-          <Input label={`${player2} score`} value={score2} onChangeText={setScore2} placeholder="0" />
-          <Button title="Submit score" onPress={handleScore} disabled={!canEdit} />
+          <Input label={`${player1} score`} value={score1} onChangeText={setScore1} placeholder="0" testID="input-score-p1" />
+          <Input label={`${player2} score`} value={score2} onChangeText={setScore2} placeholder="0" testID="input-score-p2" />
+          <Button title="Submit score" onPress={handleScore} disabled={!canEdit} testID="btn-submit-score" />
         </Card>
         {!canEdit ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
       </Screen>

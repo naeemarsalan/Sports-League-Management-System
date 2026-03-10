@@ -212,6 +212,7 @@ export const ChallengeScreen = ({ navigation }) => {
                 title={creating ? "Creating match..." : "Challenge!"}
                 onPress={handleChallenge}
                 disabled={creating}
+                testID="btn-confirm-challenge"
               />
             </View>
           </View>
@@ -273,7 +274,7 @@ export const ChallengeScreen = ({ navigation }) => {
 
       {selectedOpponent && (
         <View style={styles.nextBar}>
-          <Button title="Next" onPress={() => setStep(2)} />
+          <Button title="Next" onPress={() => setStep(2)} testID="btn-create-match" />
         </View>
       )}
     </Screen>

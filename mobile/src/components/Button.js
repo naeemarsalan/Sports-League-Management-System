@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../theme/colors";
 
-export const Button = ({ title, onPress, variant = "primary", disabled }) => {
+export const Button = ({ title, onPress, variant = "primary", disabled, testID }) => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -36,6 +36,7 @@ export const Button = ({ title, onPress, variant = "primary", disabled }) => {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        testID={testID}
       >
         {isPrimary || isDanger ? (
           <LinearGradient

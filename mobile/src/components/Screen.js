@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 
-export const Screen = ({ children, scroll = true, style, edges = ["top"], refreshControl }) => {
+export const Screen = ({ children, scroll = true, style, edges = ["top"], refreshControl, testID }) => {
   const content = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.scrollContent, style]}
@@ -17,7 +17,7 @@ export const Screen = ({ children, scroll = true, style, edges = ["top"], refres
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={edges}>
+    <SafeAreaView style={styles.container} edges={edges} testID={testID}>
       {content}
     </SafeAreaView>
   );

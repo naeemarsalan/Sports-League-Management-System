@@ -1,5 +1,4 @@
-import { databases, ID, Permission, Query, Role, appwriteConfig } from "./appwrite";
-import { sendPushNotification } from "./notifications";
+import { databases, Query, appwriteConfig, callLeagueApi } from "./appwrite";
 
 export const listMatches = async ({ leagueId, status, playerId, weekCommencing } = {}) => {
   const queries = [];
@@ -54,68 +53,30 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
 };
 
 /**
- * Create a new match and notify the opponent
- * @param {Object} payload - Match data
- * @param {string} challengerName - Display name of the challenger (for notification)
+ * Create a new match via server-side function (RBAC enforced)
  */
 export const createMatch = async (payload, challengerName = null) => {
-  // Ensure leagueId is provided
   if (!payload.leagueId) {
     throw new Error("leagueId is required when creating a match");
   }
 
-  const match = await databases.createDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.matchesCollectionId,
-    ID.unique(),
-    payload,
-    [
-      Permission.read(Role.users()),
-      Permission.update(Role.users()),
-      Permission.delete(Role.users()),
-    ]
-  );
-
-  // Send push notification to opponent (player2)
-  if (payload.player2Id) {
-    sendPushNotification("challenge_received", payload.player2Id, {
-      matchId: match.$id,
-      challengerName,
-    }, payload.leagueId);
-  }
-
-  return match;
+  return callLeagueApi("createMatch", {
+    leagueId: payload.leagueId,
+    matchData: payload,
+    challengerName,
+  });
 };
 
 /**
- * Update match and optionally send notifications
- * @param {string} matchId - The match ID to update
- * @param {Object} payload - Update data
- * @param {Object} notifyOptions - Notification options
- * @param {string[]} notifyOptions.playerIds - Player IDs to notify
- * @param {string} notifyOptions.type - Notification type (match_scheduled, score_submitted)
- * @param {Object} notifyOptions.data - Additional notification data
- * @param {string} [notifyOptions.leagueId] - League ID for rate limiting
+ * Update match via server-side function (RBAC enforced)
  */
 export const updateMatch = async (matchId, payload, notifyOptions = null) => {
-  const updated = await databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.matchesCollectionId,
+  return callLeagueApi("updateMatch", {
     matchId,
-    payload
-  );
-
-  // Send notifications if requested
-  if (notifyOptions?.playerIds?.length > 0 && notifyOptions.type) {
-    for (const playerId of notifyOptions.playerIds) {
-      sendPushNotification(notifyOptions.type, playerId, {
-        matchId,
-        ...notifyOptions.data,
-      }, notifyOptions.leagueId);
-    }
-  }
-
-  return updated;
+    matchData: payload,
+    leagueId: payload.leagueId,
+    notifyOptions,
+  });
 };
 
 export const getMatch = async (matchId) => {
@@ -126,10 +87,9 @@ export const getMatch = async (matchId) => {
   );
 };
 
-export const deleteMatch = async (matchId) => {
-  return databases.deleteDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.matchesCollectionId,
-    matchId
-  );
+/**
+ * Delete match via server-side function (RBAC enforced)
+ */
+export const deleteMatch = async (matchId, leagueId = null) => {
+  return callLeagueApi("deleteMatch", { matchId, leagueId });
 };

@@ -10,6 +10,7 @@ export const Input = ({
   placeholder,
   keyboardType,
   autoCapitalize = "none",
+  testID,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -34,6 +35,7 @@ export const Input = ({
         autoCapitalize={autoCapitalize}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        testID={testID}
       />
     </View>
   );

@@ -1,4 +1,4 @@
-import { databases, ID, Query, appwriteConfig } from "./appwrite";
+import { databases, ID, Query, appwriteConfig, callLeagueApi } from "./appwrite";
 
 export const getProfileByUserId = async (userId) => {
   const response = await databases.listDocuments(
@@ -26,11 +26,9 @@ export const createProfile = async ({ userId, displayName, role }) => {
   );
 };
 
+/**
+ * Update profile via server-side function (self-only enforcement)
+ */
 export const updateProfile = async (documentId, payload) => {
-  return databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.profilesCollectionId,
-    documentId,
-    payload
-  );
+  return callLeagueApi("updateProfile", { profileId: documentId, profileData: payload });
 };

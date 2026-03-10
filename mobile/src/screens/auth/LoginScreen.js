@@ -23,15 +23,16 @@ export const LoginScreen = ({ navigation }) => {
   return (
     <Screen>
       <SectionHeader title="Welcome back" subtitle="Sign in to manage your league." />
-      <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+      <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" testID="input-email" />
       <Input
         label="Password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         placeholder="••••••••"
+        testID="input-password"
       />
-      <Button title={loading ? "Signing in..." : "Sign In"} onPress={handleLogin} disabled={loading} />
+      <Button title={loading ? "Signing in..." : "Sign In"} onPress={handleLogin} disabled={loading} testID="btn-login" />
       <TouchableOpacity onPress={() => navigation.navigate("Register")}
         style={{ marginTop: 16 }}>
         <Text style={{ color: colors.textSecondary }}>

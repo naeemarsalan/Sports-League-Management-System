@@ -1,4 +1,4 @@
-import { databases, ID, Query, appwriteConfig } from "./appwrite";
+import { databases, Query, appwriteConfig, callLeagueApi } from "./appwrite";
 
 export const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0, includeFramePoints: false };
 
@@ -25,47 +25,20 @@ export const generateInviteCode = () => {
 };
 
 /**
- * Create a new league
+ * Create a new league (server-side RBAC enforced, creates owner membership atomically)
  */
 export const createLeague = async ({ name, description, createdBy, pointsPerWin, pointsPerDraw, pointsPerLoss, includeFramePoints, sportType }) => {
-  const inviteCode = generateInviteCode();
-
-  const league = await databases.createDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leaguesCollectionId,
-    ID.unique(),
-    {
+  return callLeagueApi("createLeague", {
+    leagueData: {
       name,
-      description: description || "",
-      inviteCode,
-      createdBy,
-      createdAt: new Date().toISOString(),
-      isActive: true,
-      memberCount: 1,
-      pointsPerWin: pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
-      pointsPerDraw: pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
-      pointsPerLoss: pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
-      includeFramePoints: includeFramePoints ?? SCORING_DEFAULTS.includeFramePoints,
-      sportType: sportType ?? "pool",
-    }
-  );
-
-  // Automatically add creator as owner
-  await databases.createDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leagueMembersCollectionId,
-    ID.unique(),
-    {
-      leagueId: league.$id,
-      userId: createdBy,
-      role: "owner",
-      status: "approved",
-      joinedAt: new Date().toISOString(),
-      requestedAt: new Date().toISOString(),
-    }
-  );
-
-  return league;
+      description,
+      pointsPerWin,
+      pointsPerDraw,
+      pointsPerLoss,
+      includeFramePoints,
+      sportType,
+    },
+  });
 };
 
 /**
@@ -104,52 +77,22 @@ export const listLeagues = async () => {
 };
 
 /**
- * Update league settings
+ * Update league settings (server-side RBAC enforced)
  */
 export const updateLeague = async (leagueId, payload) => {
-  return databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leaguesCollectionId,
-    leagueId,
-    payload
-  );
+  return callLeagueApi("updateLeague", { leagueId, leagueData: payload });
 };
 
 /**
- * Regenerate invite code for a league
+ * Regenerate invite code for a league (server-side RBAC enforced)
  */
 export const regenerateInviteCode = async (leagueId) => {
-  const newCode = generateInviteCode();
-  return databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leaguesCollectionId,
-    leagueId,
-    { inviteCode: newCode }
-  );
+  return callLeagueApi("regenerateInviteCode", { leagueId });
 };
 
 /**
- * Soft delete a league (set isActive to false)
+ * Soft delete a league (server-side RBAC enforced)
  */
 export const deleteLeague = async (leagueId) => {
-  return databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leaguesCollectionId,
-    leagueId,
-    { isActive: false }
-  );
-};
-
-/**
- * Update member count for a league
- */
-export const updateMemberCount = async (leagueId, delta) => {
-  const league = await getLeague(leagueId);
-  const newCount = Math.max(0, (league.memberCount || 0) + delta);
-  return databases.updateDocument(
-    appwriteConfig.databaseId,
-    appwriteConfig.leaguesCollectionId,
-    leagueId,
-    { memberCount: newCount }
-  );
+  return callLeagueApi("deleteLeague", { leagueId });
 };
