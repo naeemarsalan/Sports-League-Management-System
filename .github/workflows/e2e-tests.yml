@@ -40,16 +40,17 @@ jobs:
       - name: Install Gitleaks
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          if ! command -v gitleaks &> /dev/null && ! [ -f "$HOME/.local/bin/gitleaks" ]; then
-            TMPDIR=$(mktemp -d)
-            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_linux_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
-            tar xzf "$TMPDIR/gitleaks.tar.gz" -C "$TMPDIR"
-            mkdir -p "$HOME/.local/bin"
-            mv "$TMPDIR/gitleaks" "$HOME/.local/bin/gitleaks"
-            chmod +x "$HOME/.local/bin/gitleaks"
-            rm -rf "$TMPDIR"
-          fi
+          mkdir -p "$HOME/.local/bin"
+          # Remove any stale/wrong-arch binary
+          rm -f "$HOME/.local/bin/gitleaks"
+          TMPDIR=$(mktemp -d)
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_linux_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
+          tar xzf "$TMPDIR/gitleaks.tar.gz" -C "$TMPDIR"
+          mv "$TMPDIR/gitleaks" "$HOME/.local/bin/gitleaks"
+          chmod +x "$HOME/.local/bin/gitleaks"
+          rm -rf "$TMPDIR"
           export PATH="$HOME/.local/bin:$PATH"
+          file "$HOME/.local/bin/gitleaks"
           gitleaks version
       - name: Run Gitleaks
         run: gitleaks detect --source . -v --config .gitleaks.toml
@@ -82,15 +83,12 @@ jobs:
       - name: Setup Python and install Semgrep
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          # Ensure python3 and pip are available
-          if ! command -v python3 &> /dev/null; then
-            sudo dnf install -y python3 python3-pip 2>/dev/null || true
-          fi
-          if ! command -v pip3 &> /dev/null; then
-            sudo dnf install -y python3-pip 2>/dev/null || python3 -m ensurepip --user 2>/dev/null || true
-          fi
-          python3 -m pip install --user semgrep || pip3 install --user semgrep
           export PATH="$HOME/.local/bin:$PATH"
+          echo "Python version: $(python3 --version 2>&1 || echo 'not found')"
+          echo "Pip version: $(python3 -m pip --version 2>&1 || echo 'not found')"
+          python3 -m pip install --user --break-system-packages semgrep 2>/dev/null \
+            || python3 -m pip install --user semgrep 2>/dev/null \
+            || pip3 install --user semgrep
           semgrep --version
       - name: Run Semgrep
         run: |
@@ -112,14 +110,10 @@ jobs:
       - name: Setup Python and install Bandit
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          if ! command -v python3 &> /dev/null; then
-            sudo dnf install -y python3 python3-pip 2>/dev/null || true
-          fi
-          if ! command -v pip3 &> /dev/null; then
-            sudo dnf install -y python3-pip 2>/dev/null || python3 -m ensurepip --user 2>/dev/null || true
-          fi
-          python3 -m pip install --user bandit || pip3 install --user bandit
           export PATH="$HOME/.local/bin:$PATH"
+          python3 -m pip install --user --break-system-packages bandit 2>/dev/null \
+            || python3 -m pip install --user bandit 2>/dev/null \
+            || pip3 install --user bandit
           bandit --version
       - name: Run Bandit
         run: |
