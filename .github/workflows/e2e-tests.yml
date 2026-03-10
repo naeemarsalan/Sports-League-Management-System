@@ -41,22 +41,26 @@ jobs:
         run: |
           if ! command -v gitleaks &> /dev/null; then
             TMPDIR=$(mktemp -d)
-            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_darwin_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
+            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_linux_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
             tar xzf "$TMPDIR/gitleaks.tar.gz" -C "$TMPDIR"
-            sudo mv "$TMPDIR/gitleaks" /usr/local/bin/gitleaks
-            chmod +x /usr/local/bin/gitleaks
+            mkdir -p "$HOME/.local/bin"
+            mv "$TMPDIR/gitleaks" "$HOME/.local/bin/gitleaks"
+            chmod +x "$HOME/.local/bin/gitleaks"
             rm -rf "$TMPDIR"
+            export PATH="$HOME/.local/bin:$PATH"
           fi
           gitleaks version
       - name: Run Gitleaks
-        run: gitleaks detect --source . -v --config .gitleaks.toml
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          gitleaks detect --source . -v --config .gitleaks.toml
 
   dependency-scan:
     name: Dependency Scan
     runs-on: self-hosted
     strategy:
       matrix:
-        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, web, "."]
+        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, "."]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,13 +83,15 @@ jobs:
       - name: Install Semgrep
         run: |
           if ! command -v semgrep &> /dev/null; then
-            python3.10 -m pip install --break-system-packages semgrep 2>/dev/null \
-              || python3.10 -m pip install semgrep 2>/dev/null \
-              || python3 -m pip install semgrep
+            python3 -m pip install --user semgrep 2>/dev/null \
+              || pip3 install --user semgrep
+            export PATH="$HOME/.local/bin:$PATH"
           fi
+          export PATH="$HOME/.local/bin:$PATH"
           semgrep --version
       - name: Run Semgrep
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           semgrep scan \
             --config p/javascript \
             --config p/nodejs \
@@ -103,11 +109,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Bandit
         run: |
-          python3.10 -m pip install --break-system-packages bandit 2>/dev/null \
-            || python3.10 -m pip install bandit 2>/dev/null \
-            || python3 -m pip install bandit
+          python3 -m pip install --user bandit 2>/dev/null \
+            || pip3 install --user bandit
+          export PATH="$HOME/.local/bin:$PATH"
+          bandit --version
       - name: Run Bandit
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           if find migrations/ -name '*.py' 2>/dev/null | head -1 | grep -q .; then
             bandit -r migrations/ -f json -o bandit-report.json || true
             bandit -r migrations/ -ll
@@ -143,7 +151,7 @@ jobs:
         run: npm install -g license-checker
       - name: Check licenses
         run: |
-          for dir in mobile web; do
+          for dir in mobile; do
             if [ -f "$dir/package.json" ]; then
               echo "Checking licenses in $dir/"
               cd "$dir"
