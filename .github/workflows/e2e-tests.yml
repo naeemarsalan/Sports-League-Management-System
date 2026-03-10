@@ -1,4 +1,4 @@
-name: E2E Smoke Tests
+name: CI Pipeline
 
 on:
   push:
@@ -6,33 +6,184 @@ on:
   pull_request:
     branches: [new, dev]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   e2e-tests:
+    name: E2E Smoke Tests
     runs-on: self-hosted
     timeout-minutes: 10
     environment: APPWRITE_API_KEY
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install dependencies
         working-directory: mobile
         run: npm ci --ignore-scripts --legacy-peer-deps
-
       - name: Run E2E smoke tests
         working-directory: mobile
         run: npm run test:e2e
         env:
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
 
-  security:
-    needs: e2e-tests
-    uses: ./.github/workflows/security.yml
-    permissions:
-      contents: read
-      security-events: write
-    secrets: inherit
+  secret-detection:
+    name: Secret Detection (Gitleaks)
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Gitleaks
+        run: |
+          if ! command -v gitleaks &> /dev/null; then
+            TMPDIR=$(mktemp -d)
+            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_darwin_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
+            tar xzf "$TMPDIR/gitleaks.tar.gz" -C "$TMPDIR"
+            sudo mv "$TMPDIR/gitleaks" /usr/local/bin/gitleaks
+            chmod +x /usr/local/bin/gitleaks
+            rm -rf "$TMPDIR"
+          fi
+          gitleaks version
+      - name: Run Gitleaks
+        run: gitleaks detect --source . -v --config .gitleaks.toml
+
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, web, "."]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run npm audit
+        working-directory: ${{ matrix.directory }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm audit --audit-level=high || true
+          elif [ -f package.json ]; then
+            npm install --package-lock-only 2>/dev/null && npm audit --audit-level=high || true
+          fi
+
+  sast-javascript:
+    name: SAST - JavaScript (Semgrep)
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: |
+          if ! command -v semgrep &> /dev/null; then
+            python3.10 -m pip install --break-system-packages semgrep 2>/dev/null \
+              || python3.10 -m pip install semgrep 2>/dev/null \
+              || python3 -m pip install semgrep
+          fi
+          semgrep --version
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --config p/nodejs \
+            --config p/owasp-top-ten \
+            --config .semgreprc.yml \
+            --error \
+            --exclude='node_modules' \
+            --exclude='*.lock' \
+            --exclude='.expo'
+
+  sast-python:
+    name: SAST - Python (Bandit)
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Bandit
+        run: |
+          python3.10 -m pip install --break-system-packages bandit 2>/dev/null \
+            || python3.10 -m pip install bandit 2>/dev/null \
+            || python3 -m pip install bandit
+      - name: Run Bandit
+        run: |
+          if find migrations/ -name '*.py' 2>/dev/null | head -1 | grep -q .; then
+            bandit -r migrations/ -f json -o bandit-report.json || true
+            bandit -r migrations/ -ll
+          else
+            echo "No Python files found in migrations/"
+          fi
+
+  config-scan:
+    name: Config & Filesystem Scan (Trivy)
+    runs-on: self-hosted
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+          format: table
+
+  license-check:
+    name: License Compliance Check
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install license-checker
+        run: npm install -g license-checker
+      - name: Check licenses
+        run: |
+          for dir in mobile web; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Checking licenses in $dir/"
+              cd "$dir"
+              npm install --ignore-scripts 2>/dev/null || true
+              license-checker --failOn 'GPL-3.0;AGPL-3.0' --production || exit 1
+              cd ..
+            fi
+          done
+
+  pipeline-summary:
+    name: Pipeline Summary
+    runs-on: self-hosted
+    if: always()
+    needs:
+      - e2e-tests
+      - secret-detection
+      - dependency-scan
+      - sast-javascript
+      - sast-python
+      - config-scan
+      - license-check
+    steps:
+      - name: Summary
+        run: |
+          echo "## Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Smoke Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Detection | ${{ needs.secret-detection.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST JavaScript | ${{ needs.sast-javascript.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST Python | ${{ needs.sast-python.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Config Scan | ${{ needs.config-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Check | ${{ needs.license-check.result }} |" >> $GITHUB_STEP_SUMMARY
+      - name: Fail on critical
+        if: |
+          needs.e2e-tests.result == 'failure' ||
+          needs.secret-detection.result == 'failure' ||
+          needs.license-check.result == 'failure'
+        run: |
+          echo "::error::Critical job(s) failed — E2E, secret detection, or license check."
+          exit 1
