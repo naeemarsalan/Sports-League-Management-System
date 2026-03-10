@@ -1,0 +1,41 @@
+name: iOS Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build IPA & Create Release
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="v$(python3 -c "import json; print(json.load(open('mobile/package.json'))['version'])")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Check if release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.version.outputs.version }}" &>/dev/null; then
+            echo "::notice::Release ${{ steps.version.outputs.version }} already exists — skipping."
+            echo "SKIP_RELEASE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build & Release
+        if: env.SKIP_RELEASE != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh repo set-default "${{ github.repository }}"
+          bash scripts/release-ios.sh "${{ steps.version.outputs.version }}"
