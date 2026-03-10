@@ -110,6 +110,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
           }}
           placeholder="Enter 6-character code"
           autoCapitalize="characters"
+          testID="input-invite-code"
         />
 
         {error ? (
@@ -124,6 +125,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
             title={loading ? "Looking up..." : "Find League"}
             onPress={handleLookup}
             disabled={loading || !inviteCode.trim()}
+            testID="btn-find-league"
           />
         )}
 
@@ -153,6 +155,7 @@ export const JoinLeagueScreen = ({ navigation }) => {
               title={loading ? "Sending request..." : "Request to Join"}
               onPress={handleJoin}
               disabled={loading}
+              testID="btn-request-join"
             />
           </Card>
         )}

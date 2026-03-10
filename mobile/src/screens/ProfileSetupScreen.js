@@ -79,6 +79,7 @@ export const ProfileSetupScreen = () => {
             placeholder="Enter your name"
             autoCapitalize="words"
             autoFocus
+            testID="input-profile-name"
           />
 
           <Text style={styles.hint}>
@@ -89,6 +90,7 @@ export const ProfileSetupScreen = () => {
             title="Complete Setup"
             onPress={handleSetup}
             disabled={!displayName.trim()}
+            testID="btn-complete-setup"
           />
         </View>
 

@@ -26,18 +26,20 @@ export const RegisterScreen = ({ navigation }) => {
   return (
     <Screen>
       <SectionHeader title="Join the league" subtitle="Create an account to play and score." />
-      <Input label="Display name" value={displayName} onChangeText={setDisplayName} placeholder="Alex Carter" />
-      <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+      <Input label="Display name" value={displayName} onChangeText={setDisplayName} placeholder="Alex Carter" testID="input-register-name" />
+      <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" testID="input-register-email" />
       <Input
         label="Password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         placeholder="••••••••"
+        testID="input-register-password"
       />
       <Pressable
         onPress={() => setAgreed(!agreed)}
         style={{ flexDirection: "row", alignItems: "flex-start", marginVertical: 12 }}
+        testID="checkbox-agree"
       >
         <Ionicons
           name={agreed ? "checkbox" : "square-outline"}
@@ -68,6 +70,7 @@ export const RegisterScreen = ({ navigation }) => {
         title={loading ? "Creating..." : "Create Account"}
         onPress={handleRegister}
         disabled={loading || !agreed}
+        testID="btn-register"
       />
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
         <Text style={{ color: colors.textSecondary }}>

@@ -3,6 +3,7 @@ module.exports = {
   testRunner: {
     args: {
       config: "tests/detox/jest.config.js",
+      $0: "npx jest",
     },
     jest: {
       setupTimeout: 120000,
@@ -12,8 +13,15 @@ module.exports = {
     "ios.debug": {
       type: "ios.app",
       binaryPath:
-        "ios/build/Build/Products/Debug-iphonesimulator/snookerpoolleague.app",
+        "ios/build/Build/Products/Debug-iphonesimulator/SnookerPoolLeague.app",
       build: "npx expo run:ios --configuration Debug",
+    },
+    "ios.release": {
+      type: "ios.app",
+      binaryPath:
+        "ios/build/Build/Products/Release-iphonesimulator/SnookerPoolLeague.app",
+      build:
+        "xcodebuild -workspace ios/SnookerPoolLeague.xcworkspace -scheme SnookerPoolLeague -configuration Release -sdk iphonesimulator -derivedDataPath ios/build -quiet build",
     },
   },
   devices: {
@@ -26,6 +34,10 @@ module.exports = {
     "ios.sim.debug": {
       device: "simulator",
       app: "ios.debug",
+    },
+    "ios.sim.release": {
+      device: "simulator",
+      app: "ios.release",
     },
   },
 };

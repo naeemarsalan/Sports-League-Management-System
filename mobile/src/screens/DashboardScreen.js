@@ -19,13 +19,14 @@ import { useAuthStore } from "../state/useAuthStore";
 import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
 import { useNotificationStore } from "../state/useNotificationStore";
 
-const ActionButton = ({ icon, label, onPress }) => (
+const ActionButton = ({ icon, label, onPress, testID }) => (
   <Pressable
     onPress={() => {
       Haptics.selectionAsync();
       onPress?.();
     }}
     style={styles.actionButton}
+    testID={testID}
   >
     <View style={styles.actionIconContainer}>
       <Ionicons name={icon} size={22} color={colors.accent} />
@@ -216,6 +217,7 @@ export const DashboardScreen = ({ navigation }) => {
             <Pressable
               style={styles.createLeagueBtn}
               onPress={() => navigation.navigate("CreateLeague")}
+              testID="btn-create-league"
             >
               <Ionicons name="add" size={20} color={colors.textInverse} />
               <Text style={styles.createLeagueBtnText}>Create League</Text>
@@ -223,6 +225,7 @@ export const DashboardScreen = ({ navigation }) => {
             <Pressable
               style={styles.joinLeagueBtn}
               onPress={() => navigation.navigate("JoinLeague")}
+              testID="btn-join-league"
             >
               <Ionicons name="key-outline" size={20} color={colors.accent} />
               <Text style={styles.joinLeagueBtnText}>Join League</Text>
@@ -342,6 +345,7 @@ export const DashboardScreen = ({ navigation }) => {
                     icon="flash-outline"
                     label="Challenge Player"
                     onPress={() => navigation.navigate("Challenge")}
+                    testID="btn-challenge-player"
                   />
                 )}
                 {canManageMembers && (

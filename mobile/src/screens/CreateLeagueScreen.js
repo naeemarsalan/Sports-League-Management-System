@@ -129,6 +129,7 @@ export const CreateLeagueScreen = ({ navigation }) => {
             <Pressable
               style={styles.advancedToggle}
               onPress={() => setShowAdvanced(!showAdvanced)}
+              testID="btn-advanced-settings"
             >
               <Text style={styles.advancedToggleText}>Advanced Settings</Text>
               <Ionicons
@@ -146,18 +147,21 @@ export const CreateLeagueScreen = ({ navigation }) => {
                   value={pointsPerWin}
                   onChangeText={setPointsPerWin}
                   keyboardType="number-pad"
+                  testID="input-points-per-win"
                 />
                 <Input
                   label="Points per Draw"
                   value={pointsPerDraw}
                   onChangeText={setPointsPerDraw}
                   keyboardType="number-pad"
+                  testID="input-points-per-draw"
                 />
                 <Input
                   label="Points per Loss"
                   value={pointsPerLoss}
                   onChangeText={setPointsPerLoss}
                   keyboardType="default"
+                  testID="input-points-per-loss"
                 />
 
                 <View style={styles.frameToggleRow}>
@@ -172,6 +176,7 @@ export const CreateLeagueScreen = ({ navigation }) => {
                     onValueChange={setIncludeFramePoints}
                     trackColor={{ false: colors.border, true: colors.accent }}
                     thumbColor="#fff"
+                    testID="switch-frame-points"
                   />
                 </View>
               </View>

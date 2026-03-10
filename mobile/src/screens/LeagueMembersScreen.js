@@ -211,6 +211,7 @@ export const LeagueMembersScreen = ({ navigation }) => {
               style={[styles.actionBtn, styles.approveBtn]}
               onPress={() => handleApprove(member)}
               disabled={approveMutation.isPending}
+              testID="btn-approve-member"
             >
               <Ionicons name="checkmark" size={20} color={colors.success} />
             </Pressable>
@@ -225,6 +226,7 @@ export const LeagueMembersScreen = ({ navigation }) => {
         ) : canEditThisMember ? (
           <Pressable
             style={styles.moreBtn}
+            testID="btn-member-actions"
             onPress={() => {
               Alert.alert(
                 member.profile?.displayName || "Member",
@@ -293,6 +295,7 @@ export const LeagueMembersScreen = ({ navigation }) => {
           <Pressable
             style={[styles.tab, activeTab === TAB_MEMBERS && styles.tabActive]}
             onPress={() => setActiveTab(TAB_MEMBERS)}
+            testID="tab-members"
           >
             <Text
               style={[
@@ -306,6 +309,7 @@ export const LeagueMembersScreen = ({ navigation }) => {
           <Pressable
             style={[styles.tab, activeTab === TAB_PENDING && styles.tabActive]}
             onPress={() => setActiveTab(TAB_PENDING)}
+            testID="tab-pending"
           >
             <Text
               style={[

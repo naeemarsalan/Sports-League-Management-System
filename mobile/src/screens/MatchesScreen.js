@@ -51,7 +51,7 @@ const MatchRow = ({ match, playersById, onPress, onDelete, canDelete }) => {
   };
 
   return (
-    <Pressable onPress={onPress} style={styles.matchRow}>
+    <Pressable onPress={onPress} style={styles.matchRow} testID="match-row">
       <View style={styles.matchInfo}>
         <Text style={styles.matchPlayers}>
           {player1} <Text style={styles.vsText}>vs.</Text>

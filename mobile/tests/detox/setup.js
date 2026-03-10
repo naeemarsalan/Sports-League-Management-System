@@ -1,13 +1,6 @@
-const { device } = require("detox");
+// Detox 20.x injects `device`, `element`, `by`, `expect` as globals
+// via testEnvironment. This file provides shared lifecycle hooks.
 
 beforeAll(async () => {
   await device.launchApp({ newInstance: true });
-});
-
-afterAll(async () => {
-  await device.terminateApp();
-});
-
-beforeEach(async () => {
-  await device.reloadReactNative();
 });

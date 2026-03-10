@@ -342,7 +342,7 @@ export const ProfileScreen = ({ navigation }) => {
           <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
         </Pressable>
 
-        <Pressable style={styles.menuItem} onPress={handleLogout}>
+        <Pressable style={styles.menuItem} onPress={handleLogout} testID="btn-logout">
           <Text style={[styles.menuItemText, { color: colors.danger }]}>
             Log Out
           </Text>
