@@ -18,8 +18,14 @@ jobs:
       - name: Install Gitleaks
         run: |
           if ! command -v gitleaks &> /dev/null; then
-            brew install gitleaks || (curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_darwin_amd64.tar.gz | tar xz -C /usr/local/bin gitleaks)
+            TMPDIR=$(mktemp -d)
+            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.0/gitleaks_8.21.0_darwin_x64.tar.gz -o "$TMPDIR/gitleaks.tar.gz"
+            tar xzf "$TMPDIR/gitleaks.tar.gz" -C "$TMPDIR"
+            sudo mv "$TMPDIR/gitleaks" /usr/local/bin/gitleaks
+            chmod +x /usr/local/bin/gitleaks
+            rm -rf "$TMPDIR"
           fi
+          gitleaks version
       - name: Run Gitleaks
         run: gitleaks detect --source . -v --config .gitleaks.toml
 
@@ -64,8 +70,11 @@ jobs:
       - name: Install Semgrep
         run: |
           if ! command -v semgrep &> /dev/null; then
-            python3 -m pip install semgrep || pip3 install semgrep
+            python3.10 -m pip install --break-system-packages semgrep 2>/dev/null \
+              || python3.10 -m pip install semgrep 2>/dev/null \
+              || python3 -m pip install semgrep
           fi
+          semgrep --version
       - name: Run Semgrep
         run: |
           semgrep scan \
@@ -84,7 +93,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Bandit
-        run: python3 -m pip install bandit || pip3 install bandit
+        run: |
+          python3.10 -m pip install --break-system-packages bandit 2>/dev/null \
+            || python3.10 -m pip install bandit 2>/dev/null \
+            || python3 -m pip install bandit
       - name: Run Bandit
         run: |
           if find migrations/ -name '*.py' 2>/dev/null | head -1 | grep -q .; then
