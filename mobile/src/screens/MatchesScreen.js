@@ -64,7 +64,7 @@ const MatchRow = ({ match, playersById, onPress, onDelete, canDelete }) => {
         {match.isCompleted && hasScore ? (
           <View style={styles.resultBadge}>
             <Text style={styles.resultText}>
-              RESULT: {match.scorePlayer1}-{match.scorePlayer2}
+              FRAMES: {match.scorePlayer1}-{match.scorePlayer2}
             </Text>
           </View>
         ) : canDelete ? (

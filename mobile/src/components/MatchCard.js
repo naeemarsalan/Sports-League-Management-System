@@ -84,6 +84,7 @@ export const MatchCard = ({ match, playersById }) => {
       {/* Score Display */}
       {scoreAvailable && (
         <View style={styles.scoreRow}>
+          <Text style={styles.framesLabel}>FRAMES</Text>
           <Text
             style={[
               styles.score,
@@ -182,10 +183,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    flexWrap: "wrap",
     marginTop: 16,
     paddingVertical: 8,
     backgroundColor: colors.surfaceAlt,
     borderRadius: 12,
+  },
+  framesLabel: {
+    width: "100%",
+    textAlign: "center",
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 2,
   },
   score: {
     fontSize: 32,

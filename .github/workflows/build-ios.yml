@@ -12,6 +12,7 @@ jobs:
     name: Build IPA & Create Release
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 60
+    environment: APPWRITE_API_KEY
 
     steps:
       - uses: actions/checkout@v4
@@ -39,3 +40,99 @@ jobs:
         run: |
           gh repo set-default "${{ github.repository }}"
           bash scripts/release-ios.sh "${{ steps.version.outputs.version }}"
+
+      - name: Download IPA from release
+        if: env.SKIP_RELEASE != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ steps.version.outputs.version }}" \
+            --pattern '*.ipa' \
+            --dir ./release-assets
+
+          IPA_FILE=$(ls ./release-assets/*.ipa 2>/dev/null | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "ERROR: No IPA file found in release assets."
+            exit 1
+          fi
+          echo "IPA_FILE=$IPA_FILE" >> "$GITHUB_ENV"
+          echo "Found IPA: $IPA_FILE"
+
+      - name: Upload to Diawi
+        if: env.SKIP_RELEASE != 'true'
+        env:
+          DIAWI_KEY: ${{ secrets.DIAWI_KEY }}
+        run: |
+          echo "==> Uploading IPA to Diawi …"
+          RESPONSE=$(curl -sS \
+            -F "token=${DIAWI_KEY}" \
+            -F "file=@${IPA_FILE}" \
+            https://upload.diawi.com/)
+
+          echo "Upload response: $RESPONSE"
+
+          JOB_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('job',''))")
+          if [ -z "$JOB_ID" ]; then
+            echo "ERROR: No job ID returned from Diawi."
+            exit 1
+          fi
+          echo "DIAWI_JOB_ID=$JOB_ID" >> "$GITHUB_ENV"
+          echo "Diawi job ID: $JOB_ID"
+
+      - name: Poll Diawi status
+        if: env.SKIP_RELEASE != 'true'
+        env:
+          DIAWI_KEY: ${{ secrets.DIAWI_KEY }}
+        run: |
+          echo "==> Polling Diawi for upload status …"
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 10
+
+            STATUS_RESPONSE=$(curl -sS "https://upload.diawi.com/status?token=${DIAWI_KEY}&job=${DIAWI_JOB_ID}" || true)
+            STATUS=$(echo "$STATUS_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',0))" 2>/dev/null || echo "0")
+
+            echo "  Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: status=${STATUS}"
+
+            if [ "$STATUS" = "2" ]; then
+              DIAWI_LINK=$(echo "$STATUS_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('link',''))")
+              echo "DIAWI_LINK=$DIAWI_LINK" >> "$GITHUB_ENV"
+              echo "Upload complete: $DIAWI_LINK"
+              break
+            elif [ "$STATUS" = "4" ]; then
+              echo "ERROR: Diawi upload failed."
+              echo "$STATUS_RESPONSE"
+              exit 1
+            fi
+          done
+
+          if [ "$STATUS" != "2" ]; then
+            echo "ERROR: Diawi upload timed out after 5 minutes."
+            exit 1
+          fi
+
+      - name: Update release notes with Diawi link
+        if: env.SKIP_RELEASE != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          EXISTING_BODY=$(gh release view "$TAG" --json body -q '.body')
+
+          if echo "$EXISTING_BODY" | grep -qF "**Diawi download link:**"; then
+            echo "==> Release notes already contain Diawi link, skipping."
+          else
+            NEW_BODY="${EXISTING_BODY}
+
+          ---
+
+          ## OTA Install
+
+          **Diawi download link:** ${DIAWI_LINK}"
+
+            gh release edit "$TAG" --notes "$NEW_BODY"
+            echo "==> Release notes updated with Diawi link."
+          fi
