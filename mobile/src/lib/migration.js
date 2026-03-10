@@ -4,10 +4,12 @@ import { databases, ID, Query, appwriteConfig } from "./appwrite";
  * Generate a random 6-character invite code
  */
 const generateInviteCode = () => {
+  const array = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(array);
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(array[i] % chars.length);
   }
   return code;
 };

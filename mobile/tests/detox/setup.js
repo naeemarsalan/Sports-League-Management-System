@@ -2,5 +2,11 @@
 // via testEnvironment. This file provides shared lifecycle hooks.
 
 beforeAll(async () => {
-  await device.launchApp({ newInstance: true });
+  await device.launchApp({
+    newInstance: true,
+    launchArgs: {
+      // Attempt to reduce system popups
+      detoxURLBlacklistRegex: ".*keychain.*",
+    },
+  });
 });

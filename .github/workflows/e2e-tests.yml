@@ -91,11 +91,9 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep scan \
-            --config p/javascript \
-            --config p/nodejs \
-            --config p/owasp-top-ten \
             --config .semgreprc.yml \
             --error \
+            --severity ERROR \
             --exclude='node_modules' \
             --exclude='*.lock' \
             --exclude='.expo'

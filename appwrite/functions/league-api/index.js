@@ -480,10 +480,12 @@ async function incrementMemberCount(leagueId, delta) {
 }
 
 function generateInviteCode() {
+  const crypto = require("crypto");
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.randomBytes(6);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }

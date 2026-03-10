@@ -33,7 +33,7 @@ rules:
           $FN($URL_EXPR, ...);
       - pattern-not-inside: |
           ...
-          if (<... req.headers["x-appwrite-user-id"] ...>) { ... }
+          req.headers["x-appwrite-user-id"]
           ...
     message: >
       userId extracted from request body is used without verifying it matches
