@@ -99,12 +99,9 @@ class AppwriteAdmin:
 def build_permissions(member_role: str, admin_role: Optional[str]) -> list:
     permissions = [
         f'read("{member_role}")',
-        f'create("{member_role}")',
-        f'update("{member_role}")',
-        f'delete("{member_role}")',
     ]
     if admin_role:
-        permissions.append(f'write("{admin_role}")')
+        permissions.append(f'read("{admin_role}")')
     return permissions
 
 
@@ -380,7 +377,26 @@ def main() -> None:
         {"key": "notificationLimit", "required": False, "min": 0, "max": 1000, "default": 50, "array": False},
     )
 
-    time.sleep(2)
+    # Wait for attributes to be available before creating indexes.
+    # Appwrite processes attribute creation asynchronously; indexes fail
+    # if attributes are still in "processing" state.
+    print("Waiting for attributes to be ready...")
+    for attempt in range(15):
+        time.sleep(2)
+        try:
+            attrs_url = f"/databases/{database_id}/collections/{profiles_id}/attributes"
+            attrs = admin.request("GET", attrs_url)
+            all_ready = all(
+                a.get("status") == "available"
+                for a in attrs.get("attributes", [])
+            )
+            if all_ready and attrs.get("attributes"):
+                break
+        except Exception:
+            pass
+    else:
+        print("Warning: timed out waiting for attributes, proceeding anyway.")
+
     admin.create_index(
         database_id,
         notification_logs_id,
@@ -401,6 +417,9 @@ def main() -> None:
     )
     admin.create_index(
         database_id, profiles_id, "profiles_name", "key", ["displayName"]
+    )
+    admin.create_index(
+        database_id, profiles_id, "profiles_userId", "unique", ["userId"]
     )
     admin.create_index(
         database_id, leagues_id, "leagues_invite_code", "unique", ["inviteCode"]

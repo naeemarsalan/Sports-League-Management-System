@@ -61,6 +61,7 @@ lerna-debug.log*
 
 # Keys and certificates
 *.pem
+appwrite.cres
 
 # Security scanning reports
 bandit-report.json

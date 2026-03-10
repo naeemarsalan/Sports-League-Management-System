@@ -102,7 +102,7 @@ module.exports = async ({ req, res, log, error }) => {
             const updateRes = await fetch(updateUrl, {
               method: "PATCH",
               headers,
-              body: JSON.stringify({ $permissions: merged }),
+              body: JSON.stringify({ permissions: merged }),
             });
 
             if (updateRes.ok) {
@@ -123,7 +123,7 @@ module.exports = async ({ req, res, log, error }) => {
             const updateRes = await fetch(updateUrl, {
               method: "PATCH",
               headers,
-              body: JSON.stringify({ leagueId: defaultLeagueId }),
+              body: JSON.stringify({ data: { leagueId: defaultLeagueId } }),
             });
 
             if (updateRes.ok) {

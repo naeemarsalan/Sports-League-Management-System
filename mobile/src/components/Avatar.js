@@ -24,11 +24,11 @@ const getColorFromName = (name) => {
 
 const getInitials = (name) => {
   if (!name) return "?";
-  const parts = name.trim().split(" ");
+  const parts = name.trim().split(" ").filter((p) => p.length > 0);
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0].trim()[0] + parts[parts.length - 1].trim()[0]).toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return name.trim().substring(0, 2).toUpperCase();
 };
 
 export const Avatar = ({

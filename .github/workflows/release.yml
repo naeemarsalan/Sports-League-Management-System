@@ -97,7 +97,10 @@ jobs:
           TAG="$RELEASE_TAG"
           EXISTING_BODY=$(gh release view "$TAG" --json body -q '.body')
 
-          NEW_BODY="${EXISTING_BODY}
+          if echo "$EXISTING_BODY" | grep -qF "**Diawi download link:**"; then
+            echo "==> Release notes already contain Diawi link, skipping."
+          else
+            NEW_BODY="${EXISTING_BODY}
 
           ---
 
@@ -105,5 +108,6 @@ jobs:
 
           **Diawi download link:** ${DIAWI_LINK}"
 
-          gh release edit "$TAG" --notes "$NEW_BODY"
-          echo "==> Release notes updated with Diawi link."
+            gh release edit "$TAG" --notes "$NEW_BODY"
+            echo "==> Release notes updated with Diawi link."
+          fi

@@ -33,11 +33,24 @@ rules:
           $FN($URL_EXPR, ...);
       - pattern-not-inside: |
           ...
-          req.headers["x-appwrite-user-id"]
+          if (req.headers["x-appwrite-user-id"] !== ...) { ... }
+          ...
+      - pattern-not-inside: |
+          ...
+          if (req.headers["x-appwrite-user-id"] === ...) { ... }
+          ...
+      - pattern-not-inside: |
+          ...
+          req.headers["x-appwrite-user-id"] !== userId
+          ...
+      - pattern-not-inside: |
+          ...
+          authenticatedUserId !== userId
           ...
     message: >
       userId extracted from request body is used without verifying it matches
-      the authenticated user (x-appwrite-user-id header).
+      the authenticated user (x-appwrite-user-id header). Compare the header
+      value against the userId before proceeding.
     languages: [javascript]
     severity: ERROR
     metadata:

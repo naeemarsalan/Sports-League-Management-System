@@ -86,24 +86,36 @@ const toJsonQuery = (q) => {
   const match = q.match(/^(\w+)\("([^"]+)",\s*\[(.+)\]\)$/);
   if (!match) return q;
   const [, method, attribute, rawValues] = match;
-  // Parse the values array — split respecting quoted strings
+  // Parse the values array — split respecting quoted strings.
+  // Track whether each value was originally quoted so we can skip coercion for strings.
   const values = [];
+  const wasQuoted = [];
   let current = "";
   let inQuotes = false;
+  let currentQuoted = false;
   for (let i = 0; i < rawValues.length; i++) {
     const ch = rawValues[i];
     if (ch === '"') {
       inQuotes = !inQuotes;
+      currentQuoted = true;
     } else if (ch === ',' && !inQuotes) {
       values.push(current.trim());
+      wasQuoted.push(currentQuoted);
       current = "";
+      currentQuoted = false;
     } else {
       current += ch;
     }
   }
-  if (current.length > 0) values.push(current.trim());
+  if (current.length > 0 || currentQuoted) {
+    values.push(current.trim());
+    wasQuoted.push(currentQuoted);
+  }
 
-  const parsed = values.map((v) => {
+  // Only coerce unquoted values (booleans/numbers written without quotes in SDK syntax).
+  // Originally-quoted values are always strings.
+  const parsed = values.map((v, i) => {
+    if (wasQuoted[i]) return v;
     if (v === "true") return true;
     if (v === "false") return false;
     const n = Number(v);

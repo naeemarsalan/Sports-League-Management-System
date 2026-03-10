@@ -60,16 +60,21 @@ export const migrateToMultiLeague = async (adminUserId) => {
       console.log(`Created default league: ${defaultLeague.$id}`);
     }
 
-    // Step 2: Get all profiles
-    const profilesRes = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.profilesCollectionId,
-      [Query.limit(500)]
-    );
-
-    if (profilesRes.total > profilesRes.documents.length) {
-      console.warn(`Warning: ${profilesRes.total} profiles exist but only ${profilesRes.documents.length} fetched. Pagination not implemented — some profiles will be skipped.`);
+    // Step 2: Get all profiles (paginated)
+    const allProfiles = [];
+    const PAGE_SIZE = 500;
+    let profileOffset = 0;
+    while (true) {
+      const profilesRes = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.profilesCollectionId,
+        [Query.limit(PAGE_SIZE), Query.offset(profileOffset)]
+      );
+      allProfiles.push(...profilesRes.documents);
+      if (profilesRes.documents.length < PAGE_SIZE) break;
+      profileOffset += PAGE_SIZE;
     }
+    const profilesRes = { documents: allProfiles, total: allProfiles.length };
     console.log(`Found ${profilesRes.documents.length} profiles to migrate...`);
 
     // Step 3: Add each profile as a league member
@@ -126,16 +131,21 @@ export const migrateToMultiLeague = async (adminUserId) => {
       }
     );
 
-    // Step 5: Update all matches with leagueId
-    const matchesRes = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.matchesCollectionId,
-      [Query.limit(1000)]
-    );
-
-    if (matchesRes.total > matchesRes.documents.length) {
-      console.warn(`Warning: ${matchesRes.total} matches exist but only ${matchesRes.documents.length} fetched. Pagination not implemented — some matches will be skipped.`);
+    // Step 5: Update all matches with leagueId (paginated)
+    const allMatches = [];
+    let matchOffset = 0;
+    const MATCH_PAGE_SIZE = 500;
+    while (true) {
+      const page = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.matchesCollectionId,
+        [Query.limit(MATCH_PAGE_SIZE), Query.offset(matchOffset)]
+      );
+      allMatches.push(...page.documents);
+      if (page.documents.length < MATCH_PAGE_SIZE) break;
+      matchOffset += MATCH_PAGE_SIZE;
     }
+    const matchesRes = { documents: allMatches, total: allMatches.length };
     console.log(`Found ${matchesRes.documents.length} matches to update...`);
 
     let matchesUpdated = 0;

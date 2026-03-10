@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { colors } from "../theme/colors";
+import { ROLE_CONFIG } from "./RoleBadge";
 
 export const LeagueCard = ({
   league,
@@ -20,14 +21,7 @@ export const LeagueCard = ({
   const getRoleBadge = () => {
     if (!membership || !showRole) return null;
 
-    const roleConfig = {
-      owner: { label: "Owner", color: colors.gold },
-      admin: { label: "Admin", color: colors.accent },
-      mod: { label: "Mod", color: colors.info },
-      player: { label: "Player", color: colors.textSecondary },
-    };
-
-    const config = roleConfig[membership.role] || roleConfig.player;
+    const config = ROLE_CONFIG[membership.role] || ROLE_CONFIG.player;
 
     return (
       <View style={[styles.roleBadge, { backgroundColor: `${config.color}20` }]}>

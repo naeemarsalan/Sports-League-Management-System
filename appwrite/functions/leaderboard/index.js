@@ -58,7 +58,14 @@ function ensureStanding(state, playerId, name) {
 const SCORING_DEFAULTS = { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0, includeFramePoints: false };
 
 function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
-  const profileMap = new Map(profiles.map((profile) => [profile.$id, profile]));
+  // Build dual map: by $id AND by userId field, so matches using either ID format work
+  const profileMap = new Map();
+  profiles.forEach((profile) => {
+    profileMap.set(profile.$id, profile);
+    if (profile.userId) {
+      profileMap.set(profile.userId, profile);
+    }
+  });
   const standings = {};
 
   matches
@@ -76,8 +83,8 @@ function computeLeaderboard(matches, profiles, scoring = SCORING_DEFAULTS) {
         return;
       }
 
-      const entry1 = ensureStanding(standings, match.player1Id, player1.displayName);
-      const entry2 = ensureStanding(standings, match.player2Id, player2.displayName);
+      const entry1 = ensureStanding(standings, player1.$id, player1.displayName);
+      const entry2 = ensureStanding(standings, player2.$id, player2.displayName);
 
       entry1.gamesPlayed += 1;
       entry2.gamesPlayed += 1;
@@ -134,18 +141,51 @@ module.exports = async function handler({ req, res, log, error }) {
       }, 500);
     }
 
+    // Parse request body for leagueId
+    let body = {};
+    try {
+      body = JSON.parse(req.body || "{}");
+    } catch (e) {
+      body = req.body || {};
+    }
+    const leagueId = body.leagueId || (req.query && req.query.leagueId);
+
     const headers = {
       "X-Appwrite-Project": projectId,
       "X-Appwrite-Key": apiKey,
       "Content-Type": "application/json",
     };
 
-    const [profiles, matches] = await Promise.all([
+    const [profiles, allMatches] = await Promise.all([
       fetchAllDocuments(endpoint, headers, databaseId, profilesCollection),
       fetchAllDocuments(endpoint, headers, databaseId, matchesCollection),
     ]);
 
-    const leaderboard = computeLeaderboard(matches, profiles);
+    // Filter matches by leagueId if provided
+    const matches = leagueId
+      ? allMatches.filter((m) => m.leagueId === leagueId)
+      : allMatches;
+
+    // Use league-specific scoring config if available
+    let scoring = SCORING_DEFAULTS;
+    if (leagueId) {
+      try {
+        const leagueUrl = buildUrl(endpoint, `/databases/${databaseId}/collections/leagues/documents/${leagueId}`);
+        const league = await requestJson(leagueUrl, headers);
+        if (league.pointsPerWin != null) {
+          scoring = {
+            pointsPerWin: league.pointsPerWin ?? SCORING_DEFAULTS.pointsPerWin,
+            pointsPerDraw: league.pointsPerDraw ?? SCORING_DEFAULTS.pointsPerDraw,
+            pointsPerLoss: league.pointsPerLoss ?? SCORING_DEFAULTS.pointsPerLoss,
+            includeFramePoints: league.includeFramePoints ?? SCORING_DEFAULTS.includeFramePoints,
+          };
+        }
+      } catch (e) {
+        if (log) log(`Could not fetch league scoring config, using defaults: ${e.message}`);
+      }
+    }
+
+    const leaderboard = computeLeaderboard(matches, profiles, scoring);
     return res.json({ leaderboard }, 200);
   } catch (err) {
     if (error) {

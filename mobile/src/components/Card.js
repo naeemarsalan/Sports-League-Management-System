@@ -13,14 +13,16 @@ export const Card = ({ children, style, highlight = false, glow = false }) => {
         style,
       ]}
     >
-      <LinearGradient
-        colors={highlight ? [colors.cardHighlight, colors.card] : colors.gradientCard}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gradient}
-      >
-        {children}
-      </LinearGradient>
+      <View style={styles.clipWrapper}>
+        <LinearGradient
+          colors={highlight ? [colors.cardHighlight, colors.card] : colors.gradientCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.gradient}
+        >
+          {children}
+        </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -31,12 +33,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
-    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  clipWrapper: {
+    borderRadius: 17,
+    overflow: "hidden",
   },
   gradient: {
     padding: 16,

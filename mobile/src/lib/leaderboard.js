@@ -11,42 +11,47 @@ import { SCORING_DEFAULTS } from "./leagues";
 export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) => {
   try {
     const scoring = scoringConfig ?? SCORING_DEFAULTS;
-    // Build queries for matches - only filter by leagueId if provided and valid
-    const matchQueries = [Query.equal("isCompleted", true), Query.limit(500)];
+    const PAGE_SIZE = 500;
 
-    // Fetch profiles first
-    const profilesRes = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.profilesCollectionId,
-      [Query.limit(500)]
-    );
+    // Paginated fetch helper
+    const fetchAll = async (collectionId, extraQueries = []) => {
+      const allDocs = [];
+      let offset = 0;
+      while (true) {
+        const res = await databases.listDocuments(
+          appwriteConfig.databaseId,
+          collectionId,
+          [...extraQueries, Query.limit(PAGE_SIZE), Query.offset(offset)]
+        );
+        allDocs.push(...res.documents);
+        if (res.documents.length < PAGE_SIZE) break;
+        offset += PAGE_SIZE;
+      }
+      return allDocs;
+    };
+
+    // Fetch profiles (paginated)
+    const profiles = await fetchAll(appwriteConfig.profilesCollectionId);
 
     // Fetch matches - try with leagueId filter, fall back to all matches if it fails
-    let matchesRes;
+    let matches;
     let members = [];
 
     if (leagueId && typeof leagueId === "string" && leagueId.trim().length > 0) {
       try {
-        // Try fetching with leagueId filter
-        matchesRes = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.matchesCollectionId,
-          [...matchQueries, Query.equal("leagueId", leagueId)]
-        );
+        matches = await fetchAll(appwriteConfig.matchesCollectionId, [
+          Query.equal("isCompleted", true),
+          Query.equal("leagueId", leagueId),
+        ]);
         members = await getLeagueMembers(leagueId, "approved");
       } catch (queryError) {
         // If leagueId query fails (e.g., old matches without leagueId), fetch all and filter
         console.warn("Falling back to fetching all matches:", queryError.message);
         try {
-          matchesRes = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.matchesCollectionId,
-            matchQueries
-          );
-          // Filter matches by leagueId client-side
-          matchesRes.documents = matchesRes.documents.filter(
-            (m) => m.leagueId === leagueId
-          );
+          const allMatches = await fetchAll(appwriteConfig.matchesCollectionId, [
+            Query.equal("isCompleted", true),
+          ]);
+          matches = allMatches.filter((m) => m.leagueId === leagueId);
           members = await getLeagueMembers(leagueId, "approved");
         } catch (fallbackError) {
           console.warn("Fallback query also failed:", fallbackError.message);
@@ -54,16 +59,10 @@ export const fetchLeaderboard = async (leagueId = null, scoringConfig = null) =>
         }
       }
     } else {
-      // No league filter - fetch all matches
-      matchesRes = await databases.listDocuments(
-        appwriteConfig.databaseId,
-        appwriteConfig.matchesCollectionId,
-        matchQueries
-      );
+      matches = await fetchAll(appwriteConfig.matchesCollectionId, [
+        Query.equal("isCompleted", true),
+      ]);
     }
-
-    const profiles = profilesRes.documents;
-    const matches = matchesRes.documents;
 
     // Create a set of member userIds if filtering by league
     const leagueMemberUserIds = leagueId
@@ -216,9 +215,9 @@ export const notifyOvertakenPlayers = (before, after, leagueId = null) => {
       if (oldPos == null) continue; // new player, skip
 
       if (newPos > oldPos) {
-        // Player dropped — find who overtook them
-        // The player now at their old position is the overtaker
-        const overtaker = after[oldPos - 1]; // 0-indexed
+        // Player dropped — try to identify who overtook them
+        // Only identify overtaker for single-position drops where we can be confident
+        const overtaker = (newPos - oldPos === 1) ? after[oldPos - 1] : null;
         sendPushNotification("position_overtaken", playerId, {
           overtakerName: overtaker?.name,
           oldPosition: oldPos,

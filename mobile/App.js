@@ -104,8 +104,10 @@ function NotificationHandler() {
 
   useEffect(() => {
     if (user && !hasRegistered.current) {
-      hasRegistered.current = true;
+      const currentUserId = user.$id;
       registerForPushNotifications().then((token) => {
+        if (useAuthStore.getState().user?.$id !== currentUserId) return;
+        hasRegistered.current = true;
         if (token) {
           savePushToken(user.$id, token);
         }

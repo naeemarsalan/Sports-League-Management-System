@@ -66,14 +66,26 @@ module.exports = async ({ req, res, log, error }) => {
       }
     }
 
-    // 2. Delete league memberships and update member counts
+    // 2. Delete league memberships and update member counts (paginated)
     if (leagueMembersCollectionId) {
       try {
-        const membersUrl = `${endpoint}/databases/${databaseId}/collections/${leagueMembersCollectionId}/documents?queries[]=${encodeURIComponent(JSON.stringify(["equal(\"userId\", [\"" + userId + "\"])"])) }&queries[]=${encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }))}`;
-        const membersRes = await fetch(membersUrl, { headers });
-        if (membersRes.ok) {
+        const MEMBER_LIMIT = 100;
+        let memberOffset = 0;
+        let allMemberships = [];
+
+        // Fetch all memberships with pagination
+        while (true) {
+          const membersUrl = `${endpoint}/databases/${databaseId}/collections/${leagueMembersCollectionId}/documents?queries[]=${encodeURIComponent(JSON.stringify(["equal(\"userId\", [\"" + userId + "\"])"])) }&queries[]=${encodeURIComponent(JSON.stringify({ method: "limit", values: [MEMBER_LIMIT] }))}&queries[]=${encodeURIComponent(JSON.stringify({ method: "offset", values: [memberOffset] }))}`;
+          const membersRes = await fetch(membersUrl, { headers });
+          if (!membersRes.ok) throw new Error("Failed to fetch memberships page");
           const membersData = await membersRes.json();
-          for (const membership of membersData.documents || []) {
+          const docs = membersData.documents || [];
+          allMemberships.push(...docs);
+          if (docs.length < MEMBER_LIMIT) break;
+          memberOffset += MEMBER_LIMIT;
+        }
+
+        for (const membership of allMemberships) {
             // If approved member, decrement league member count
             if (membership.status === "approved" && leaguesCollectionId && membership.leagueId) {
               try {
@@ -118,7 +130,6 @@ module.exports = async ({ req, res, log, error }) => {
               errors.push(`membership:${membership.$id}`);
             }
           }
-        }
       } catch (err) {
         error(`Error deleting memberships: ${err.message}`);
         errors.push("memberships");
@@ -136,11 +147,11 @@ module.exports = async ({ req, res, log, error }) => {
       } else {
         const errText = await deleteUserRes.text();
         error(`Failed to delete user account: ${errText}`);
-        return res.json({ success: false, error: "Failed to delete user account" }, 500);
+        return res.json({ success: false, error: "Failed to delete account" }, 500);
       }
     } catch (err) {
       error(`Error deleting user account: ${err.message}`);
-      return res.json({ success: false, error: err.message }, 500);
+      return res.json({ success: false, error: "Failed to delete account" }, 500);
     }
 
     if (errors.length > 0) {
@@ -151,6 +162,6 @@ module.exports = async ({ req, res, log, error }) => {
 
   } catch (err) {
     error(`Unexpected error: ${err.message}`);
-    return res.json({ success: false, error: err.message }, 500);
+    return res.json({ success: false, error: "An unexpected error occurred" }, 500);
   }
 };

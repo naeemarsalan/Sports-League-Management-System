@@ -40,7 +40,7 @@
       "runtime": "node-18.0",
       "entrypoint": "index.js",
       "commands": "npm install",
-      "execute": ["users"],
+      "execute": [],
       "path": "appwrite/functions/migrate-matches",
       "variables": {
         "APPWRITE_ENDPOINT": "https://appwrite.arsalan.io/v1",

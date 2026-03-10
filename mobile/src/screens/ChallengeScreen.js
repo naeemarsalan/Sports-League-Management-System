@@ -138,6 +138,21 @@ export const ChallengeScreen = ({ navigation }) => {
     );
   };
 
+  // Show empty state if no league selected (check before permissions)
+  if (!currentLeagueId) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="people"
+          title="No League Selected"
+          message="Join or create a league before challenging players."
+          actionTitle="Go to Leagues"
+          onAction={() => navigation.navigate("Leagues")}
+        />
+      </Screen>
+    );
+  }
+
   // Permission check — only mod/admin/owner can challenge
   if (!canPerform(ACTIONS.CREATE_MATCH)) {
     return (
@@ -148,21 +163,6 @@ export const ChallengeScreen = ({ navigation }) => {
           message="Only moderators and admins can schedule matches."
           actionTitle="Go Back"
           onAction={() => navigation.goBack()}
-        />
-      </Screen>
-    );
-  }
-
-  // Show empty state if no league selected
-  if (!currentLeagueId) {
-    return (
-      <Screen>
-        <EmptyState
-          icon="people"
-          title="No League Selected"
-          message="Join or create a league before challenging players."
-          actionTitle="Go to Leagues"
-          onAction={() => navigation.navigate("Leagues")}
         />
       </Screen>
     );

@@ -44,7 +44,8 @@ module.exports = async ({ req, res, log, error }) => {
 
   // Verify the caller is authenticated (user session or API key from other functions)
   const authenticatedUserId = req.headers["x-appwrite-user-id"];
-  if (!authenticatedUserId && !req.headers["x-appwrite-key"]) {
+  const isApiKeyCall = !!req.headers["x-appwrite-key"];
+  if (!authenticatedUserId && !isApiKeyCall) {
     error("Unauthenticated request — no x-appwrite-user-id or x-appwrite-key header");
     return res.json({ success: false, error: "Authentication required" }, 401);
   }
@@ -134,6 +135,14 @@ module.exports = async ({ req, res, log, error }) => {
     } else {
       // Maybe it's already an auth user ID — try it directly
       log(`Profile lookup failed for ${userId}, trying as auth user ID`);
+    }
+
+    // Recipient authorization: user-session callers can only send to themselves.
+    // Checked after profile lookup so we compare Auth IDs (not profile doc ID vs Auth ID).
+    // API-key calls (function-to-function) skip this check.
+    if (authenticatedUserId && !isApiKeyCall && authenticatedUserId !== authUserId) {
+      error(`User ${authenticatedUserId} attempted to send notification to ${userId}`);
+      return res.json({ success: false, error: "Not authorized to send to this user" }, 403);
     }
 
     // Get user's push targets

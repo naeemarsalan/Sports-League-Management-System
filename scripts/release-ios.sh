@@ -25,7 +25,7 @@ fi
 
 VERSION="$1"
 
-if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
   echo "ERROR: Version must match format vX.Y.Z (e.g. v1.0.0)"
   exit 1
 fi
@@ -41,6 +41,13 @@ fi
 if ! gh auth status &> /dev/null; then
   echo "ERROR: gh CLI is not authenticated. Run 'gh auth login' first."
   exit 1
+fi
+
+# Ensure a default repo is set (needed for gh release)
+REMOTE_URL=$(git -C "$PROJECT_ROOT" remote get-url origin 2>/dev/null || true)
+if [ -n "$REMOTE_URL" ]; then
+  REPO_SLUG=$(echo "$REMOTE_URL" | sed -E 's#.*github\.com[:/](.+?)(.git)?$#\1#' | sed 's/\.git$//')
+  gh repo set-default "$REPO_SLUG" 2>/dev/null || true
 fi
 
 if ! command -v eas &> /dev/null; then
@@ -68,6 +75,12 @@ fi
 # ---------------------------------------------------------------------------
 # Create GitHub Release
 # ---------------------------------------------------------------------------
+if gh release view "$VERSION" &>/dev/null; then
+  echo "ERROR: Release ${VERSION} already exists."
+  rm -f ./build.ipa
+  exit 1
+fi
+
 echo "==> Creating GitHub Release ${VERSION} …"
 gh release create "$VERSION" ./build.ipa \
   --title "Release ${VERSION}" \

@@ -32,7 +32,7 @@ export const listMatches = async ({ leagueId, status, playerId, weekCommencing }
       documents = response.documents;
     } catch (error) {
       // Only fall back for attribute-not-found errors (legacy matches without leagueId attribute)
-      if (error.code !== 400 && !error.message?.includes("attribute")) {
+      if (error.code !== 400 || !error.message?.includes("attribute")) {
         throw error;
       }
       console.warn("Falling back to client-side league filtering:", error.message);

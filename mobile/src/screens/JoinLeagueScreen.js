@@ -49,12 +49,12 @@ export const JoinLeagueScreen = ({ navigation }) => {
       if (existingMembership) {
         if (existingMembership.status === "approved") {
           setError("You're already a member of this league");
+          return;
         } else if (existingMembership.status === "pending") {
           setError("You already have a pending request for this league");
-        } else {
-          setError("Your previous request was rejected");
+          return;
         }
-        return;
+        // Rejected members can re-request — proceed to join flow
       }
 
       setFoundLeague(league);

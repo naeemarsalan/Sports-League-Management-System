@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 
-const ROLE_CONFIG = {
+export const ROLE_CONFIG = {
   owner: {
     label: "Owner",
     color: colors.gold,

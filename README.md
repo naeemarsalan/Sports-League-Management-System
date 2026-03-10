@@ -467,7 +467,7 @@ RBAC is enforced in two places:
 ### CI Pipeline
 
 **File:** `.github/workflows/e2e-tests.yml`
-**Triggers:** Push to `new` or `dev` branches, pull requests to `new` or `dev`
+**Triggers:** Pull requests to `main`
 **Runner:** `self-hosted`
 
 Runs 8 parallel jobs:
@@ -495,7 +495,7 @@ Steps:
 3. Polls Diawi status every 10s (up to 5 minutes)
 4. Appends the Diawi download link to the GitHub Release notes
 
-**Required secrets:** `DIAWI_KEY`, `APPWRITE_API_KEY`
+**Required secrets:** `DIAWI_KEY`
 
 ---
 
