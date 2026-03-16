@@ -19,8 +19,14 @@ FUNCTIONS_DIR="$PROJECT_ROOT/appwrite/functions"
 # ---------------------------------------------------------------------------
 : "${APPWRITE_ENDPOINT:=https://appwrite.arsalan.io/v1}"
 : "${APPWRITE_PROJECT_ID:=696436a5002d6f83aed7}"
+: "${APPWRITE_DATABASE_ID:=pool-league}"
 : "${PUSH_PROVIDER_ID:=expo-push}"
 : "${NODE_RUNTIME:=node-18.0}"
+
+# Collection IDs for delete-account
+: "${APPWRITE_PROFILES_COLLECTION_ID:=profiles}"
+: "${APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID:=league_members}"
+: "${APPWRITE_LEAGUES_COLLECTION_ID:=leagues}"
 
 if [ -z "${APPWRITE_API_KEY:-}" ]; then
   echo "ERROR: APPWRITE_API_KEY is required."
@@ -107,14 +113,32 @@ deploy_function() {
   # 4. Set environment variables
   echo "    Setting environment variables …"
 
+  # Determine which env vars this function needs
+  local env_keys
+  case "$func_id" in
+    league-api)
+      env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY APPWRITE_DATABASE_ID"
+      ;;
+    delete-account)
+      env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY APPWRITE_DATABASE_ID APPWRITE_PROFILES_COLLECTION_ID APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID APPWRITE_LEAGUES_COLLECTION_ID"
+      ;;
+    *)
+      env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY PUSH_PROVIDER_ID"
+      ;;
+  esac
+
   # Set variables one at a time (Appwrite API)
-  for key in APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY PUSH_PROVIDER_ID; do
+  for key in $env_keys; do
     local val
     case "$key" in
-      APPWRITE_ENDPOINT)    val="$ENDPOINT" ;;
-      APPWRITE_PROJECT_ID)  val="$APPWRITE_PROJECT_ID" ;;
-      APPWRITE_API_KEY)     val="$APPWRITE_API_KEY" ;;
-      PUSH_PROVIDER_ID)     val="$PUSH_PROVIDER_ID" ;;
+      APPWRITE_ENDPOINT)                   val="$ENDPOINT" ;;
+      APPWRITE_PROJECT_ID)                 val="$APPWRITE_PROJECT_ID" ;;
+      APPWRITE_API_KEY)                    val="$APPWRITE_API_KEY" ;;
+      APPWRITE_DATABASE_ID)                val="$APPWRITE_DATABASE_ID" ;;
+      PUSH_PROVIDER_ID)                    val="$PUSH_PROVIDER_ID" ;;
+      APPWRITE_PROFILES_COLLECTION_ID)     val="$APPWRITE_PROFILES_COLLECTION_ID" ;;
+      APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID) val="$APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID" ;;
+      APPWRITE_LEAGUES_COLLECTION_ID)      val="$APPWRITE_LEAGUES_COLLECTION_ID" ;;
     esac
 
     # Try to create; if 409, update
@@ -162,6 +186,8 @@ deploy_function() {
 # ---------------------------------------------------------------------------
 deploy_function "save-push-token"
 deploy_function "send-push"
+deploy_function "league-api"
+deploy_function "delete-account"
 
 echo ""
 echo "==> All functions deployed successfully!"
