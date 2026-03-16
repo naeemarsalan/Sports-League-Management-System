@@ -5,5 +5,11 @@
   "main": "index.js",
   "dependencies": {
     "node-fetch": "2.6.12"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "scripts": {
+    "test": "jest"
   }
 }

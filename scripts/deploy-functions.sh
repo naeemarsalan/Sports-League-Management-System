@@ -27,6 +27,7 @@ FUNCTIONS_DIR="$PROJECT_ROOT/appwrite/functions"
 : "${APPWRITE_PROFILES_COLLECTION_ID:=profiles}"
 : "${APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID:=league_members}"
 : "${APPWRITE_LEAGUES_COLLECTION_ID:=leagues}"
+: "${APPWRITE_MATCHES_COLLECTION_ID:=matches}"
 
 if [ -z "${APPWRITE_API_KEY:-}" ]; then
   echo "ERROR: APPWRITE_API_KEY is required."
@@ -122,6 +123,12 @@ deploy_function() {
     delete-account)
       env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY APPWRITE_DATABASE_ID APPWRITE_PROFILES_COLLECTION_ID APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID APPWRITE_LEAGUES_COLLECTION_ID"
       ;;
+    leaderboard)
+      env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY APPWRITE_DATABASE_ID APPWRITE_PROFILES_COLLECTION_ID APPWRITE_MATCHES_COLLECTION_ID"
+      ;;
+    migrate-matches)
+      env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY APPWRITE_DATABASE_ID APPWRITE_MATCHES_COLLECTION_ID"
+      ;;
     *)
       env_keys="APPWRITE_ENDPOINT APPWRITE_PROJECT_ID APPWRITE_API_KEY PUSH_PROVIDER_ID"
       ;;
@@ -139,6 +146,7 @@ deploy_function() {
       APPWRITE_PROFILES_COLLECTION_ID)     val="$APPWRITE_PROFILES_COLLECTION_ID" ;;
       APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID) val="$APPWRITE_LEAGUE_MEMBERS_COLLECTION_ID" ;;
       APPWRITE_LEAGUES_COLLECTION_ID)      val="$APPWRITE_LEAGUES_COLLECTION_ID" ;;
+      APPWRITE_MATCHES_COLLECTION_ID)      val="$APPWRITE_MATCHES_COLLECTION_ID" ;;
     esac
 
     # Try to create; if 409, update
@@ -188,6 +196,8 @@ deploy_function "save-push-token"
 deploy_function "send-push"
 deploy_function "league-api"
 deploy_function "delete-account"
+deploy_function "leaderboard"
+deploy_function "migrate-matches"
 
 echo ""
 echo "==> All functions deployed successfully!"

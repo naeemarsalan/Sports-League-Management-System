@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        function: [league-api, save-push-token]
+        function: [league-api, save-push-token, delete-account, leaderboard]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -77,7 +77,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, "."]
+        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, appwrite/functions/league-api, appwrite/functions/delete-account, appwrite/functions/leaderboard, "."]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
