@@ -2,9 +2,35 @@
 
 import { FadeInSection } from '@/src/components/AnimatedSection';
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Privacy Policy',
+  description:
+    'Privacy Policy for the Snooker Pool League app. Learn what data we collect, how it is stored, and your rights.',
+  url: 'https://snookerpoolleague.co.uk/privacy',
+  inLanguage: 'en-GB',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: 'Snooker Pool League',
+    url: 'https://snookerpoolleague.co.uk',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Snooker Pool League',
+    url: 'https://snookerpoolleague.co.uk',
+    email: 'support@snookerpoolleague.co.uk',
+  },
+  dateModified: '2026-03-10',
+};
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <FadeInSection>
         <h1 className="text-4xl sm:text-5xl font-bold mb-4">Privacy Policy</h1>
         <p className="text-gray-400 mb-12">Last updated: March 10, 2026</p>
