@@ -355,13 +355,6 @@ export const DashboardScreen = ({ navigation }) => {
                     onPress={() => navigation.navigate("LeagueMembers")}
                   />
                 )}
-                {canCreateMatch && (
-                  <ActionButton
-                    icon="add-circle-outline"
-                    label="Create Match"
-                    onPress={() => navigation.navigate("NewMatch")}
-                  />
-                )}
                 {canManageMembers && (
                   <ActionButton
                     icon="megaphone-outline"

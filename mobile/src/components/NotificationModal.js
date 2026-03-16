@@ -10,6 +10,8 @@ const typeConfig = {
   join_approved: { icon: "people", color: colors.success, label: "Membership Approved" },
   join_rejected: { icon: "people", color: colors.danger, label: "Membership Rejected" },
   position_overtaken: { icon: "trophy", color: colors.gold, label: "Position Overtaken" },
+  match_scheduled: { icon: "calendar", color: colors.info, label: "Match Scheduled" },
+  score_submitted: { icon: "checkmark-circle", color: colors.success, label: "Score Submitted" },
   admin_broadcast: { icon: "megaphone", color: colors.warning, label: "Announcement" },
 };
 

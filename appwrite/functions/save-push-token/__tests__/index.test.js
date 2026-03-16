@@ -11,9 +11,13 @@ const ENV = {
   PUSH_PROVIDER_ID: "expo-push",
 };
 
-function makeContext(body) {
+function makeContext(body, headers = {}) {
+  const parsed = typeof body === "object" ? body : {};
   return {
-    req: { body: typeof body === "string" ? body : JSON.stringify(body) },
+    req: {
+      body: typeof body === "string" ? body : JSON.stringify(body),
+      headers: { "x-appwrite-user-id": parsed.userId || "", ...headers },
+    },
     res: { json: jest.fn((data, status) => ({ data, status })) },
     log: jest.fn(),
     error: jest.fn(),
@@ -206,7 +210,7 @@ describe("error handling", () => {
     await handler(ctx);
 
     expect(ctx.res.json).toHaveBeenCalledWith(
-      { success: false, error: "Network error" },
+      { success: false, error: "Internal server error" },
       500
     );
     expect(ctx.error).toHaveBeenCalledWith(

@@ -23,7 +23,6 @@ import { CreateLeagueScreen } from "../screens/CreateLeagueScreen";
 import { JoinLeagueScreen } from "../screens/JoinLeagueScreen";
 import { LeagueMembersScreen } from "../screens/LeagueMembersScreen";
 import { LeagueSettingsScreen } from "../screens/LeagueSettingsScreen";
-import { NewMatchScreen } from "../screens/admin/NewMatchScreen";
 import { AdminBroadcastScreen } from "../screens/AdminBroadcastScreen";
 import { colors } from "../theme/colors";
 
@@ -178,12 +177,7 @@ export const AppNavigator = () => {
               component={LeagueSettingsScreen}
               options={{ title: "League Settings" }}
             />
-            <Stack.Screen
-              name="NewMatch"
-              component={NewMatchScreen}
-              options={{ title: "Create Match" }}
-            />
-            <Stack.Screen
+<Stack.Screen
               name="AdminBroadcast"
               component={AdminBroadcastScreen}
               options={{ title: "Send Announcement" }}

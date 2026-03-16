@@ -109,6 +109,14 @@ export const useAuthStore = create((set, get) => ({
       set({ user: null, profile: null, loading: false });
     }
   },
+  resetPassword: async (email) => {
+    try {
+      await account.createRecovery(email, "https://www.snookerpoolleague.co.uk/support");
+    } catch (error) {
+      console.error("Password reset error:", error);
+      throw error;
+    }
+  },
   deleteAccount: async () => {
     set({ loading: true, error: null });
     try {

@@ -102,6 +102,9 @@ export const ProfileScreen = ({ navigation }) => {
     setSavingPassword(true);
     try {
       await account.updatePassword(newPassword, currentPassword);
+      // Re-authenticate to verify the new password works and refresh the session
+      await account.deleteSession("current");
+      await account.createEmailPasswordSession(user.email, newPassword);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("Success", "Your password has been updated.");
       setShowChangePassword(false);
