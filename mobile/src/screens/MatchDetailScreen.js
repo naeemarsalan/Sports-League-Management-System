@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DatePicker } from "../components/DatePicker";
 import { Input } from "../components/Input";
-import { Screen } from "../components/Screen";
 import { SectionHeader } from "../components/SectionHeader";
 import { updateMatch } from "../lib/matches";
 import { fetchLeaderboard, notifyOvertakenPlayers } from "../lib/leaderboard";
@@ -20,6 +20,8 @@ export const MatchDetailScreen = ({ route, navigation }) => {
   const { profile } = useAuthStore();
   const { currentLeague, canPerform } = useLeagueStore();
   const queryClient = useQueryClient();
+  const scrollRef = useRef(null);
+  const headerHeight = useHeaderHeight();
   const { match, playersById } = route.params;
   const scoringConfig = getScoringConfig(currentLeague);
 
@@ -113,10 +115,17 @@ export const MatchDetailScreen = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={headerHeight}
     >
-      <Screen edges={[]}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <SectionHeader title="Match details" subtitle={`${player1} vs ${player2}`} />
         {match.isCompleted && (
           <View style={styles.completedBanner}>
@@ -159,12 +168,20 @@ export const MatchDetailScreen = ({ route, navigation }) => {
           </Card>
         )}
         {!canEdit && !match.isCompleted ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
-      </Screen>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
   label: {
     color: colors.textMuted,
     marginBottom: 4,
