@@ -129,12 +129,27 @@ async function handleCreateMatch(userId, { leagueId, matchData, challengerName }
   const match = await createDocument(MATCHES, { ...matchData, leagueId });
   log(`Match ${match.$id} created by ${userId}`);
 
-  // Notify opponent
+  // Notify opponent about the challenge
   if (matchData.player2Id) {
     sendNotification("challenge_received", matchData.player2Id, {
       matchId: match.$id,
       challengerName,
     }, leagueId);
+
+    // If a scheduled time was set, also send match_scheduled notification
+    if (matchData.scheduledAt) {
+      const scheduledDate = new Date(matchData.scheduledAt);
+      const formattedDate = scheduledDate.toLocaleDateString("en-GB", {
+        month: "long",
+        day: "numeric",
+      });
+      sendNotification("match_scheduled", matchData.player2Id, {
+        matchId: match.$id,
+        opponentName: challengerName,
+        scheduledAt: matchData.scheduledAt,
+        formattedDate,
+      }, leagueId);
+    }
   }
 
   return match;

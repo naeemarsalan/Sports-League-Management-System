@@ -36,17 +36,18 @@ module.exports = async ({ req, res, log, error }) => {
     body = req.body || {};
   }
 
-  const { type, userId, data, leagueId } = body;
+  const { type, userId, data, leagueId, _internalKey } = body;
 
   if (!type || !userId) {
     return res.json({ success: false, error: "type and userId are required" }, 400);
   }
 
-  // Verify the caller is authenticated (user session or API key from other functions)
+  // Verify the caller is authenticated (user session, API key header, or internal key from server functions)
   const authenticatedUserId = req.headers["x-appwrite-user-id"];
   const isApiKeyCall = !!req.headers["x-appwrite-key"];
-  if (!authenticatedUserId && !isApiKeyCall) {
-    error("Unauthenticated request — no x-appwrite-user-id or x-appwrite-key header");
+  const isInternalCall = _internalKey && _internalKey === apiKey;
+  if (!authenticatedUserId && !isApiKeyCall && !isInternalCall) {
+    error("Unauthenticated request — no x-appwrite-user-id, x-appwrite-key header, or internal key");
     return res.json({ success: false, error: "Authentication required" }, 401);
   }
 
@@ -139,8 +140,8 @@ module.exports = async ({ req, res, log, error }) => {
 
     // Recipient authorization: user-session callers can only send to themselves.
     // Checked after profile lookup so we compare Auth IDs (not profile doc ID vs Auth ID).
-    // API-key calls (function-to-function) skip this check.
-    if (authenticatedUserId && !isApiKeyCall && authenticatedUserId !== authUserId) {
+    // API-key / internal calls (function-to-function) skip this check.
+    if (authenticatedUserId && !isApiKeyCall && !isInternalCall && authenticatedUserId !== authUserId) {
       error(`User ${authenticatedUserId} attempted to send notification to ${userId}`);
       return res.json({ success: false, error: "Not authorized to send to this user" }, 403);
     }
@@ -180,27 +181,39 @@ module.exports = async ({ req, res, log, error }) => {
         };
         break;
 
-      case "match_scheduled":
+      case "match_scheduled": {
         title = "Match Scheduled";
+        const schedDate = data?.formattedDate || data?.date ||
+          (data?.scheduledAt ? new Date(data.scheduledAt).toLocaleDateString("en-GB", { month: "long", day: "numeric" }) : null);
         body = data?.opponentName
-          ? `Your match against ${sanitize(data.opponentName)} is scheduled${data.date ? ` for ${sanitize(data.date, 50)}` : ""}`
-          : "A match has been scheduled";
+          ? `Your match against ${sanitize(data.opponentName)} is scheduled${schedDate ? ` for ${sanitize(schedDate, 50)}` : ""}`
+          : schedDate
+            ? `A match has been scheduled for ${sanitize(schedDate, 50)}`
+            : "A match has been scheduled";
         notificationData = {
           type: "match_scheduled",
           matchId: data?.matchId,
         };
         break;
+      }
 
-      case "score_submitted":
+      case "score_submitted": {
         title = "Match Complete";
-        body = data?.score
-          ? `Match result: ${sanitize(data.score, 50)}`
+        let scoreBody = null;
+        if (data?.player1Name && data?.scorePlayer1 != null && data?.scorePlayer2 != null) {
+          scoreBody = `${sanitize(data.player1Name)} ${data.scorePlayer1} - ${data.scorePlayer2} ${sanitize(data.player2Name || "Opponent")}`;
+        } else if (data?.score) {
+          scoreBody = sanitize(data.score, 50);
+        }
+        body = scoreBody
+          ? `Match result: ${scoreBody}`
           : "A match result has been submitted";
         notificationData = {
           type: "score_submitted",
           matchId: data?.matchId,
         };
         break;
+      }
 
       case "join_request":
         title = "New Join Request";

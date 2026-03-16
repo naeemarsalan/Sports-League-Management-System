@@ -15,9 +15,13 @@ import { listMatches } from "../lib/matches";
 import { fetchLeaderboard } from "../lib/leaderboard";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
+import { useLeagueStore } from "../state/useLeagueStore";
+import { getScoringConfig } from "../lib/leagues";
 
 export const ProfileScreen = ({ navigation }) => {
   const { profile, user, bootstrap, logout, deleteAccount, loading } = useAuthStore();
+  const { currentLeagueId, currentLeague } = useLeagueStore();
+  const scoringConfig = getScoringConfig(currentLeague);
   const [showEditName, setShowEditName] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [saving, setSaving] = useState(false);
@@ -29,9 +33,9 @@ export const ProfileScreen = ({ navigation }) => {
   const [savingPassword, setSavingPassword] = useState(false);
 
   const { data: leaderboard = [] } = useQuery({
-    queryKey: ["leaderboard"],
-    queryFn: fetchLeaderboard,
-    enabled: !!profile,
+    queryKey: ["leaderboard", currentLeagueId, scoringConfig],
+    queryFn: () => fetchLeaderboard(currentLeagueId, scoringConfig),
+    enabled: !!profile && !!currentLeagueId,
   });
 
   const { data: profiles = [] } = useQuery({

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DatePicker } from "../components/DatePicker";
@@ -11,13 +12,14 @@ import { fetchLeaderboard, notifyOvertakenPlayers } from "../lib/leaderboard";
 import { getScoringConfig } from "../lib/leagues";
 import { colors } from "../theme/colors";
 import { useAuthStore } from "../state/useAuthStore";
-import { useLeagueStore } from "../state/useLeagueStore";
+import { useLeagueStore, ACTIONS } from "../state/useLeagueStore";
 
 const formatDateTime = (value) => (value ? value.replace("T", " ").slice(0, 16) : "");
 
 export const MatchDetailScreen = ({ route, navigation }) => {
   const { profile } = useAuthStore();
-  const { currentLeague } = useLeagueStore();
+  const { currentLeague, canPerform } = useLeagueStore();
+  const queryClient = useQueryClient();
   const { match, playersById } = route.params;
   const scoringConfig = getScoringConfig(currentLeague);
 
@@ -30,15 +32,16 @@ export const MatchDetailScreen = ({ route, navigation }) => {
   const player1 = playersById[match.player1Id]?.displayName ?? "Player 1";
   const player2 = playersById[match.player2Id]?.displayName ?? "Player 2";
 
+  const isModOrAbove = canPerform(ACTIONS.EDIT_ANY_MATCH);
+  const isMatchPlayer = [match.player1Id, match.player2Id].includes(profile?.$id);
+
   const canEdit = useMemo(() => {
-    if (!profile) {
-      return false;
-    }
-    if (profile.role === "admin") {
-      return true;
-    }
-    return [match.player1Id, match.player2Id].includes(profile.$id);
-  }, [match, profile]);
+    if (!profile) return false;
+    if (isModOrAbove) return true;
+    // Regular players can only edit their own incomplete matches
+    if (match.isCompleted) return false;
+    return isMatchPlayer;
+  }, [match, profile, isModOrAbove, isMatchPlayer]);
 
   const opponentId = profile?.$id === match.player1Id ? match.player2Id : match.player1Id;
 
@@ -56,6 +59,7 @@ export const MatchDetailScreen = ({ route, navigation }) => {
         },
         leagueId: match.leagueId,
       });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
       Alert.alert("Updated", "Match schedule updated.");
       navigation.goBack();
     } catch (error) {
@@ -98,6 +102,8 @@ export const MatchDetailScreen = ({ route, navigation }) => {
         }).catch(() => {});
       }
 
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       Alert.alert("Updated", "Result submitted.");
       navigation.goBack();
     } catch (error) {
@@ -112,30 +118,47 @@ export const MatchDetailScreen = ({ route, navigation }) => {
     >
       <Screen edges={[]}>
         <SectionHeader title="Match details" subtitle={`${player1} vs ${player2}`} />
+        {match.isCompleted && (
+          <View style={styles.completedBanner}>
+            <Text style={styles.completedText}>
+              {isModOrAbove ? "Match completed — editing as mod/admin" : "Match completed — results are locked"}
+            </Text>
+          </View>
+        )}
         <Card>
           <Text style={styles.label}>Week commencing</Text>
           <Text style={styles.value}>{match.weekCommencing?.slice(0, 10)}</Text>
           <Text style={styles.label}>Scheduled at</Text>
           <Text style={styles.value}>{match.scheduledAt ? formatDateTime(match.scheduledAt) : "Not scheduled"}</Text>
+          {match.isCompleted && (
+            <>
+              <Text style={styles.label}>Result</Text>
+              <Text style={styles.value}>{player1} {match.scorePlayer1} - {match.scorePlayer2} {player2}</Text>
+            </>
+          )}
         </Card>
-        <Card>
-          <Text style={styles.section}>Schedule match</Text>
-          <DatePicker
-            label="Scheduled date & time"
-            value={scheduledAt}
-            onChange={setScheduledAt}
-            mode="datetime"
-            placeholder="Pick a date & time..."
-          />
-          <Button title="Update schedule" onPress={handleSchedule} disabled={!canEdit} />
-        </Card>
-        <Card>
-          <Text style={styles.section}>Enter frames won</Text>
-          <Input label={`${player1} frames won`} value={score1} onChangeText={setScore1} placeholder="0" testID="input-score-p1" />
-          <Input label={`${player2} frames won`} value={score2} onChangeText={setScore2} placeholder="0" testID="input-score-p2" />
-          <Button title="Submit result" onPress={handleScore} disabled={!canEdit} testID="btn-submit-score" />
-        </Card>
-        {!canEdit ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
+        {canEdit && (
+          <Card>
+            <Text style={styles.section}>Schedule match</Text>
+            <DatePicker
+              label="Scheduled date & time"
+              value={scheduledAt}
+              onChange={setScheduledAt}
+              mode="datetime"
+              placeholder="Pick a date & time..."
+            />
+            <Button title="Update schedule" onPress={handleSchedule} />
+          </Card>
+        )}
+        {canEdit && (
+          <Card>
+            <Text style={styles.section}>{match.isCompleted ? "Edit result" : "Enter frames won"}</Text>
+            <Input label={`${player1} frames won`} value={score1} onChangeText={setScore1} placeholder="0" testID="input-score-p1" />
+            <Input label={`${player2} frames won`} value={score2} onChangeText={setScore2} placeholder="0" testID="input-score-p2" />
+            <Button title={match.isCompleted ? "Update result" : "Submit result"} onPress={handleScore} testID="btn-submit-score" />
+          </Card>
+        )}
+        {!canEdit && !match.isCompleted ? <Text style={styles.notice}>Only match players or admins can edit.</Text> : null}
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -156,6 +179,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
+  },
+  completedBanner: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+    padding: 12,
+    marginBottom: 16,
+  },
+  completedText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "500",
   },
   notice: {
     color: colors.textSecondary,
