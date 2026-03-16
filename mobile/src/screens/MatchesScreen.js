@@ -45,10 +45,23 @@ const MatchRow = ({ match, playersById, onPress, onDelete, canDelete }) => {
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
+    });
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   };
+
+  const displayDate = match.scheduledAt
+    ? formatDateTime(match.scheduledAt)
+    : `Week of ${formatDate(match.weekCommencing)}`;
 
   return (
     <Pressable onPress={onPress} style={styles.matchRow} testID="match-row">
@@ -57,7 +70,7 @@ const MatchRow = ({ match, playersById, onPress, onDelete, canDelete }) => {
           {player1} <Text style={styles.vsText}>vs.</Text>
         </Text>
         <Text style={styles.matchPlayers}>{player2}</Text>
-        <Text style={styles.matchDate}>{formatDate(match.weekCommencing)}</Text>
+        <Text style={styles.matchDate}>{displayDate}</Text>
       </View>
 
       <View style={styles.matchResult}>

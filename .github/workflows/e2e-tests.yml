@@ -9,6 +9,25 @@ permissions:
   security-events: write
 
 jobs:
+  function-unit-tests:
+    name: Function Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        function: [league-api, save-push-token, delete-account, leaderboard]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        working-directory: appwrite/functions/${{ matrix.function }}
+        run: npm install
+      - name: Run tests
+        working-directory: appwrite/functions/${{ matrix.function }}
+        run: npx jest --passWithNoTests
+
   e2e-tests:
     name: E2E Smoke Tests
     runs-on: self-hosted
@@ -58,7 +77,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, "."]
+        directory: [mobile, appwrite/functions/save-push-token, appwrite/functions/send-push, appwrite/functions/league-api, appwrite/functions/delete-account, appwrite/functions/leaderboard, "."]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -163,6 +182,7 @@ jobs:
     runs-on: self-hosted
     if: always()
     needs:
+      - function-unit-tests
       - e2e-tests
       - secret-detection
       - dependency-scan
@@ -177,6 +197,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Function Unit Tests | ${{ needs.function-unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| E2E Smoke Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Detection | ${{ needs.secret-detection.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -186,6 +207,7 @@ jobs:
           echo "| License Check | ${{ needs.license-check.result }} |" >> $GITHUB_STEP_SUMMARY
       - name: Fail on critical
         if: |
+          needs.function-unit-tests.result == 'failure' ||
           needs.e2e-tests.result == 'failure' ||
           needs.secret-detection.result == 'failure' ||
           needs.license-check.result == 'failure'

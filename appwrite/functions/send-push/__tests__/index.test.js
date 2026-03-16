@@ -16,7 +16,7 @@ function makeContext(body, headers = {}) {
   return {
     req: {
       body: typeof body === "string" ? body : JSON.stringify(body),
-      headers: { "x-appwrite-user-id": "caller-1", ...headers },
+      headers: { "x-appwrite-user-id": "caller-1", "x-appwrite-key": "fn-key", ...headers },
     },
     res: { json: jest.fn((data, status) => ({ data, status })) },
     log: jest.fn(),
@@ -34,7 +34,7 @@ function jsonResponse(data, ok = true, status = 200) {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   Object.assign(process.env, ENV);
 });
 
@@ -83,9 +83,10 @@ describe("authentication", () => {
   it("returns 401 when x-appwrite-user-id header is missing", async () => {
     const ctx = makeContext(
       { type: "challenge_received", userId: "u1" },
-      { "x-appwrite-user-id": undefined }
+      { "x-appwrite-user-id": undefined, "x-appwrite-key": undefined }
     );
     delete ctx.req.headers["x-appwrite-user-id"];
+    delete ctx.req.headers["x-appwrite-key"];
 
     await handler(ctx);
 
@@ -408,7 +409,10 @@ describe("notification types", () => {
     const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
     expect(payload.title).toBe("New Join Request");
     expect(payload.body).toBe("Charlie wants to join your league");
-    expect(payload.data).toEqual({ type: "join_request" });
+    expect(payload.data).toEqual({
+      type: "join_request",
+      requesterName: "Charlie",
+    });
   });
 
   it("sends join_request without requesterName", async () => {
@@ -599,7 +603,7 @@ describe("error handling", () => {
     await handler(ctx);
 
     expect(ctx.res.json).toHaveBeenCalledWith(
-      { success: false, error: "Network failure" },
+      { success: false, error: "Internal server error" },
       500
     );
   });
@@ -684,13 +688,19 @@ describe("rate limiting", () => {
         documents: [{ $id: "log-1", count: 5 }],
       })
     );
-    // call 2: PATCH counter
-    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-1" }));
-    // call 3: profile lookup
-    // call 4: targets
-    // call 5: messaging
+    // call 2: profile lookup
+    // call 3: targets
     setupProfileAndTargets();
+    // call 4: messaging
     setupMessagingSuccess();
+    // call 5: logs query (re-query for increment)
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        documents: [{ $id: "log-1", count: 5 }],
+      })
+    );
+    // call 6: PATCH counter
+    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-1" }));
 
     const ctx = makeContext({
       type: "challenge_received",
@@ -708,15 +718,18 @@ describe("rate limiting", () => {
     expect(mockFetch.mock.calls[1][0]).toContain(
       "/databases/pool-league/collections/notification_logs/documents"
     );
-    // call 2: PATCH the existing log doc
+    // call 2: profile lookup
     expect(mockFetch.mock.calls[2][0]).toContain(
-      "/databases/pool-league/collections/notification_logs/documents/log-1"
-    );
-    expect(mockFetch.mock.calls[2][1].method).toBe("PATCH");
-    // call 3: profile lookup
-    expect(mockFetch.mock.calls[3][0]).toContain(
       "/databases/pool-league/collections/profiles/documents/u1"
     );
+    // call 5+6: rate limit counter increment after send
+    expect(mockFetch.mock.calls[5][0]).toContain(
+      "/databases/pool-league/collections/notification_logs/documents"
+    );
+    expect(mockFetch.mock.calls[6][0]).toContain(
+      "/databases/pool-league/collections/notification_logs/documents/log-1"
+    );
+    expect(mockFetch.mock.calls[6][1].method).toBe("PATCH");
 
     expect(ctx.res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, sentTo: 1 })
@@ -743,7 +756,7 @@ describe("rate limiting", () => {
     });
     await handler(ctx);
 
-    // Should have made 2 fetch calls (league doc + logs query)
+    // Should have made 2 fetch calls (league doc + logs query) — rate limited before profile lookup
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(ctx.res.json).toHaveBeenCalledWith({
       success: false,
@@ -763,13 +776,17 @@ describe("rate limiting", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ documents: [] })
     );
-    // call 2: POST new log doc
-    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-new" }));
-    // call 3: profile lookup
-    // call 4: targets
-    // call 5: messaging
+    // call 2: profile lookup
+    // call 3: targets
     setupProfileAndTargets();
+    // call 4: messaging
     setupMessagingSuccess();
+    // call 5: logs query (re-query for increment)
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ documents: [] })
+    );
+    // call 6: POST new log doc
+    mockFetch.mockResolvedValueOnce(jsonResponse({ $id: "log-new" }));
 
     const ctx = makeContext({
       type: "challenge_received",
@@ -779,12 +796,12 @@ describe("rate limiting", () => {
     });
     await handler(ctx);
 
-    // call 2: POST to create new doc
-    expect(mockFetch.mock.calls[2][0]).toContain(
+    // call 6: POST to create new doc
+    expect(mockFetch.mock.calls[6][0]).toContain(
       "/databases/pool-league/collections/notification_logs/documents"
     );
-    expect(mockFetch.mock.calls[2][1].method).toBe("POST");
-    const postBody = JSON.parse(mockFetch.mock.calls[2][1].body);
+    expect(mockFetch.mock.calls[6][1].method).toBe("POST");
+    const postBody = JSON.parse(mockFetch.mock.calls[6][1].body);
     expect(postBody.data.leagueId).toBe("league-2");
     expect(postBody.data.count).toBe(1);
 

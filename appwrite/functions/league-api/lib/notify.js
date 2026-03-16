@@ -8,7 +8,7 @@ const init = (endpoint, projectId, apiKey) => {
 
 const sendNotification = async (type, userId, data, leagueId = null) => {
   try {
-    const payload = { type, userId, data };
+    const payload = { type, userId, data, _internalKey: _config.apiKey };
     if (leagueId) payload.leagueId = leagueId;
 
     const url = `${_config.endpoint}/functions/send-push/executions`;
