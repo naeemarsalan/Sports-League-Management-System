@@ -26,9 +26,15 @@ export const NotificationModal = ({ visible, onClose, notification, onAction }) 
 
   const config = getConfig(notification.type);
   const hasMatch = !!notification.data?.matchId;
-  const isJoinRequest = notification.type === "join_request" && !!notification.data?.membershipId;
+  const isJoinRequest = notification.type === "join_request";
+  const hasMembershipId = !!notification.data?.membershipId;
 
   const handleApprove = async () => {
+    if (!hasMembershipId) {
+      Alert.alert("Info", "Open League Members to manage join requests.");
+      onClose();
+      return;
+    }
     setProcessing(true);
     try {
       await approveMember(notification.data.membershipId);
@@ -42,6 +48,11 @@ export const NotificationModal = ({ visible, onClose, notification, onAction }) 
   };
 
   const handleReject = async () => {
+    if (!hasMembershipId) {
+      Alert.alert("Info", "Open League Members to manage join requests.");
+      onClose();
+      return;
+    }
     setProcessing(true);
     try {
       await rejectMember(notification.data.membershipId);

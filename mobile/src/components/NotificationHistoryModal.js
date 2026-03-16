@@ -18,6 +18,8 @@ const typeIcons = {
   join_approved: { icon: "people", color: colors.success },
   join_rejected: { icon: "people", color: colors.danger },
   position_overtaken: { icon: "trophy", color: colors.gold },
+  match_scheduled: { icon: "calendar", color: colors.info },
+  score_submitted: { icon: "checkmark-circle", color: colors.success },
   admin_broadcast: { icon: "megaphone", color: colors.warning },
 };
 
