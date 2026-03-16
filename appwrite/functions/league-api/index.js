@@ -360,7 +360,11 @@ async function handleRequestToJoin(userId, { leagueId, requesterName }, log) {
       (m) => m.role === "admin" || m.role === "owner"
     );
     for (const admin of admins) {
-      sendNotification("join_request", admin.userId, { requesterName }, leagueId);
+      sendNotification("join_request", admin.userId, {
+        requesterName,
+        membershipId: doc.$id,
+        leagueId,
+      }, leagueId);
     }
   } catch (err) {
     log(`Failed to notify admins: ${err.message}`);

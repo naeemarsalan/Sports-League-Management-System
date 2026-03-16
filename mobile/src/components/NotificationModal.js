@@ -1,8 +1,9 @@
-import React from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
+import { approveMember, rejectMember } from "../lib/members";
 
 const typeConfig = {
   challenge_received: { icon: "flash", color: colors.accent, label: "Challenge Received" },
@@ -19,10 +20,39 @@ const getConfig = (type) =>
   typeConfig[type] || { icon: "notifications", color: colors.accent, label: "Notification" };
 
 export const NotificationModal = ({ visible, onClose, notification, onAction }) => {
+  const [processing, setProcessing] = useState(false);
+
   if (!notification) return null;
 
   const config = getConfig(notification.type);
   const hasMatch = !!notification.data?.matchId;
+  const isJoinRequest = notification.type === "join_request" && !!notification.data?.membershipId;
+
+  const handleApprove = async () => {
+    setProcessing(true);
+    try {
+      await approveMember(notification.data.membershipId);
+      Alert.alert("Approved", `${notification.data.requesterName || "Player"} has been approved.`);
+      onClose();
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to approve member.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    setProcessing(true);
+    try {
+      await rejectMember(notification.data.membershipId);
+      Alert.alert("Rejected", "Join request has been rejected.");
+      onClose();
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to reject member.");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -56,7 +86,26 @@ export const NotificationModal = ({ visible, onClose, notification, onAction }) 
 
             {/* Actions */}
             <View style={styles.actions}>
-              {hasMatch && (
+              {isJoinRequest ? (
+                <>
+                  <Pressable
+                    style={[styles.approveBtn, processing && styles.disabledBtn]}
+                    onPress={handleApprove}
+                    disabled={processing}
+                  >
+                    <Ionicons name="checkmark" size={18} color={colors.textInverse} />
+                    <Text style={styles.primaryBtnText}>Accept</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.rejectBtn, processing && styles.disabledBtn]}
+                    onPress={handleReject}
+                    disabled={processing}
+                  >
+                    <Ionicons name="close" size={18} color={colors.danger} />
+                    <Text style={styles.rejectBtnText}>Reject</Text>
+                  </Pressable>
+                </>
+              ) : hasMatch ? (
                 <Pressable
                   style={styles.primaryBtn}
                   onPress={() => onAction?.(notification)}
@@ -64,9 +113,9 @@ export const NotificationModal = ({ visible, onClose, notification, onAction }) 
                   <Ionicons name="eye-outline" size={18} color={colors.textInverse} />
                   <Text style={styles.primaryBtnText}>View Match</Text>
                 </Pressable>
-              )}
+              ) : null}
               <Pressable
-                style={[styles.dismissBtn, !hasMatch && styles.dismissBtnFull]}
+                style={[styles.dismissBtn, !hasMatch && !isJoinRequest && styles.dismissBtnFull]}
                 onPress={onClose}
               >
                 <Text style={styles.dismissBtnText}>Dismiss</Text>
@@ -148,6 +197,36 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     gap: 6,
+  },
+  approveBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.success,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  rejectBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    gap: 6,
+  },
+  rejectBtnText: {
+    color: colors.danger,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  disabledBtn: {
+    opacity: 0.5,
   },
   primaryBtnText: {
     color: colors.textInverse,

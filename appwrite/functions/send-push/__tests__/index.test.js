@@ -409,7 +409,10 @@ describe("notification types", () => {
     const payload = JSON.parse(mockFetch.mock.calls[2][1].body);
     expect(payload.title).toBe("New Join Request");
     expect(payload.body).toBe("Charlie wants to join your league");
-    expect(payload.data).toEqual({ type: "join_request" });
+    expect(payload.data).toEqual({
+      type: "join_request",
+      requesterName: "Charlie",
+    });
   });
 
   it("sends join_request without requesterName", async () => {

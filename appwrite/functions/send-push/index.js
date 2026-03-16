@@ -220,7 +220,12 @@ module.exports = async ({ req, res, log, error }) => {
         body = data?.requesterName
           ? `${sanitize(data.requesterName)} wants to join your league`
           : "Someone wants to join your league";
-        notificationData = { type: "join_request" };
+        notificationData = {
+          type: "join_request",
+          membershipId: data?.membershipId,
+          leagueId: data?.leagueId,
+          requesterName: data?.requesterName,
+        };
         break;
 
       case "join_approved":
